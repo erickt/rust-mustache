@@ -2,3 +2,6 @@
        vers = "0.1",
        uuid = "afecaa07-75c5-466c-b3a3-fae5d32e04aa")];
 #[crate_type = "lib"];
+
+// TODO: should enable this in a bit so we can fix performance issues
+#[warn(no_non_implicitly_copyable_typarams, no_vecs_not_implicitly_copyable)];

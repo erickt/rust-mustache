@@ -234,7 +234,8 @@ impl parser for parser {
     fn eof() -> bool { self.ch == -1 as char }
 
     fn bump() {
-        alt self.lookahead {
+        let head = self.lookahead;
+        alt head {
           none { self.ch = self.rdr.read_char(); }
           some(ch) { self.ch = ch; self.lookahead = none; }
         }
@@ -342,7 +343,8 @@ impl parser for parser {
         }
 
         // Check that we don't have any incomplete sections.
-        vec::iter(self.tokens) { |token|
+        let tt = self.tokens;
+        vec::iter(tt) { |token|
             alt token {
               incomplete_section(name, _, _, _) {
                   fail #fmt("Unclosed mustache section %s",
@@ -731,7 +733,8 @@ fn render_helper(ctx: render_context) -> str {
         let len = vec::len(path);
 
         while i < len {
-            alt value {
+            let vv = value;
+            alt vv {
               some(map(v)) { value = v.find(path[i]); }
               _ { break; }
             }

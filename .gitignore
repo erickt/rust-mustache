@@ -1,4 +1,2 @@
-*.swp
-*.dylib
-*.dSYM
-mustache
+bin
+.DS_Store

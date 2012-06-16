@@ -1185,12 +1185,12 @@ mod tests {
           err(e) { fail e }
           ok(s) {
             alt json::from_str(s) {
-              err(e) { fail #fmt("%s:%u:%u: %s", src, e.line, e.col, e.msg) }
+              err(e) { fail #fmt("%s:%u:%u: %?", src, e.line, e.col, e.msg) }
               ok(json) {
                 alt json {
                   json::dict(d) {
                     alt d.find("tests") {
-                      some(json::list(tests)) { tests }
+                      some(json::list(tests)) { *tests }
                       _ { fail #fmt("%s: tests key not a list", src) }
                     }
                   }
@@ -1215,9 +1215,9 @@ mod tests {
             // 3.3.
             str(#fmt("%?", n))
           }
-          json::string(s) { str(s) }
+          json::string(s) { str(*s) }
           json::boolean(b) { bool(b) }
-          json::list(v) { vec(vec::map(v, convert_json)) }
+          json::list(v) { vec(vec::map(*v, convert_json)) }
           json::dict(d) { map(convert_json_map(d)) }
           _ { fail #fmt("%?", value) }
         }
@@ -1233,7 +1233,7 @@ mod tests {
                   json::string(s) {
                     let file = key + ".mustache";
                     alt io::file_writer(file, [io::create, io::truncate]) {
-                      ok(wr) { vec::push(files, file); wr.write_str(s); }
+                      ok(wr) { vec::push(files, file); wr.write_str(*s); }
                       err(e) { fail e; }
                     }
                   }
@@ -1249,12 +1249,12 @@ mod tests {
 
     fn run_test(test: hashmap<str, json::json>, data: hashmap<str, data>) {
         let template = alt test.get("template") {
-          json::string(s) { s }
+          json::string(s) { *s }
           _ { fail }
         };
 
         let expected = alt test.get("expected") {
-          json::string(s) { s }
+          json::string(s) { *s }
           _ { fail }
         };
 
@@ -1271,13 +1271,13 @@ mod tests {
                   json::dict(d) {
                     let mut xs = [];
                     for d.each { |k,v|
-                        let k = json::string(k);
+                        let k = json::string(@k);
                         let v = to_list(v);
-                        vec::push(xs, json::list([k, v]));
+                        vec::push(xs, json::list(@[k, v]));
                     }
-                    json::list(xs)
+                    json::list(@xs)
                   }
-                  json::list(xs) { json::list(vec::map(xs, to_list)) }
+                  json::list(@xs) { json::list(@vec::map(xs, to_list)) }
                   _ { x }
                 }
             }
@@ -1361,35 +1361,35 @@ mod tests {
             };
 
             let lambda = alt test.get("name") {
-              json::string("Interpolation") {
+              json::string(@"Interpolation") {
                   { |_text| "world" }
               }
-              json::string("Interpolation - Expansion") {
+              json::string(@"Interpolation - Expansion") {
                   { |_text| "{{planet}}" }
               }
-              json::string("Interpolation - Alternate Delimiters") {
+              json::string(@"Interpolation - Alternate Delimiters") {
                   { |_text| "|planet| => {{planet}}" }
               }
-              json::string("Interpolation - Multiple Calls") {
+              json::string(@"Interpolation - Multiple Calls") {
                   let calls = @mut 0;
                   { |_text| *calls += 1; int::str(*calls) }
               }
-              json::string("Escaping") {
+              json::string(@"Escaping") {
                   { |_text| ">" }
               }
-              json::string("Section") {
+              json::string(@"Section") {
                   { |text| if text == "{{x}}" { "yes" } else { "no" } }
               }
-              json::string("Section - Expansion") {
+              json::string(@"Section - Expansion") {
                   { |text: str| text + "{{planet}}" + text }
               }
-              json::string("Section - Alternate Delimiters") {
+              json::string(@"Section - Alternate Delimiters") {
                   { |text: str| text + "{{planet}} => |planet|" + text }
               }
-              json::string("Section - Multiple Calls") {
+              json::string(@"Section - Multiple Calls") {
                   { |text| "__" + text + "__" }
               }
-              json::string("Inverted Section") {
+              json::string(@"Inverted Section") {
                   { |_text| "" }
               }
               value { fail #fmt("%?", value) }

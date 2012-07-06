@@ -14,7 +14,7 @@ export compile_file;
 export compile_str;
 export render_reader;
 export render_file;
-export render_str;
+export render_str; 
 
 #[doc = "
 Represents the shared metadata needed to compile and render a mustache
@@ -121,7 +121,7 @@ fn render_str(template: str, data: hashmap<str, data>) -> str {
 enum data {
     str(str),
     bool(bool),
-    vec([data]),
+    vec(~[data]),
     map(hashmap<str, data>),
     fun(fn@(str) -> str),
 }
@@ -150,14 +150,14 @@ impl of to_mustache for int {
     fn to_mustache() -> data { str(int::str(self)) }
 }
 
-impl <T:to_mustache> of to_mustache for [T] {
-    fn to_mustache() -> data { vec(self.map { |x| x.to_mustache() }) }
+impl <T:to_mustache> of to_mustache for ~[T] {
+    fn to_mustache() -> data { vec(do self.map |x| {x.to_mustache()}) }
 }
 
 impl <T:to_mustache copy> of to_mustache for hashmap<str, T> {
     fn to_mustache() -> data {
         let m = str_hash();
-        for self.each { |k, v| m.insert(k, v.to_mustache()); }
+        for self.each |k, v| {m.insert(k, v.to_mustache()); }
         map(m)
     }
 }
@@ -177,8 +177,8 @@ impl <T: to_mustache> of to_mustache for option<T> {
 
 type template = {
     ctx: context,
-    tokens: [token],
-    partials: hashmap<str, [token]>
+    tokens: ~[token],
+    partials: hashmap<str, ~[token]>
 };
 
 impl template for template {
@@ -187,7 +187,7 @@ impl template for template {
             ctx: self.ctx,
             tokens: self.tokens,
             partials: self.partials,
-            stack: [map(data)],
+            stack: ~[map(data)],
             indent: ""
         })
     }
@@ -195,10 +195,10 @@ impl template for template {
 
 enum token {
     text(str),
-    etag([str], str),
-    utag([str], str),
-    section([str], bool, [token], str, str, str, str, str),
-    incomplete_section([str], bool, str, bool),
+    etag(~[str], str),
+    utag(~[str], str),
+    section(~[str], bool, ~[token], str, str, str, str, str),
+    incomplete_section(~[str], bool, str, bool),
     partial(str, str, str),
 }
 
@@ -344,7 +344,7 @@ impl parser for parser {
 
         // Check that we don't have any incomplete sections.
         let tt = self.tokens;
-        vec::iter(tt) { |token|
+        do vec::iter(tt) |token| {
             alt token {
               incomplete_section(name, _, _, _) {
                   fail #fmt("Unclosed mustache section %s",
@@ -495,7 +495,7 @@ impl parser for parser {
 
                     // Collect all the children's sources.
                     let mut srcs = [];
-                    vec::iter(children) { |child: token|
+                    do vec::iter(children) |child: token| {
                         alt child {
                           text(s)
                           | etag(_, s)
@@ -539,9 +539,9 @@ impl parser for parser {
 
             if (content_len > 2u && str::ends_with(content, "=")) {
                 let s = self.check_content(str::slice(content, 1u, content_len - 1u));
-                let pos = str::find_from(s, 0u) { |c|
+                let pos = str::find_from(s, 0u, |c| {
                     char::is_whitespace(c)
-                };
+                });
 
                 let pos = alt pos {
                   none { fail "invalid change delimiter tag content"; }
@@ -551,9 +551,9 @@ impl parser for parser {
                 self.otag = str::slice(s, 0u, pos);
                 self.otag_chars = str::chars(self.otag);
 
-                let pos = str::find_from(s, pos) { |c|
+                let pos = str::find_from(s, pos, |c| {
                     !char::is_whitespace(c)
-                };
+                });
 
                 let pos = alt pos {
                   none { fail "invalid change delimiter tag content"; }
@@ -664,7 +664,7 @@ fn compile_helper(ctx: compile_context) -> [token] {
     let (tokens, partial_names) = parser.parse();
 
     // Compile the partials if we haven't done so already.
-    vec::iter(partial_names) { |name|
+    do vec::iter(partial_names) |name| {
         let path = path::connect(ctx.template_path,
                                  name + ctx.template_extension);
 
@@ -744,7 +744,7 @@ fn render_helper(ctx: render_context) -> str {
         value
     }
 
-    let output = vec::map(ctx.tokens) { |token|
+    let output = do vec::map(ctx.tokens) |token| {
         let res = alt token {
           text(value) { indent_lines(value, ctx.indent) }
           etag(path, _) {
@@ -830,7 +830,7 @@ fn indent_lines(s: str, indent: str) -> str {
 
 fn render_etag(value: data, ctx: render_context) -> str {
     let mut escaped = "";
-    str::chars_iter(render_utag(value, ctx)) { |c|
+    do str::chars_iter(render_utag(value, ctx)) |c| {
         alt c {
           '<' { escaped += "&lt;" }
           '>' { escaped += "&gt;" }
@@ -871,9 +871,9 @@ fn render_section(value: data,
       bool(true) { render_helper(ctx) }
       bool(false) { "" }
       vec(vs) {
-        str::concat(vec::map(vs) { |v|
+        str::concat(vec::map(vs, |v| {
             render_helper({ stack: ctx.stack + [v] with ctx })
-        })
+        }))
       }
       map(_) { render_helper({ stack: ctx.stack + [value] with ctx }) }
       fun(f) { render_fun(ctx, src, otag, ctag, f) }
@@ -886,7 +886,7 @@ fn render_fun(ctx: render_context,
               otag: str,
               ctag: str,
               f: fn(str) -> str) -> str {
-    let tokens = io::with_str_reader(f(src)) { |rdr|
+    let tokens = io::with_str_reader(f(src), |rdr| {
         compile_helper({
             rdr: rdr,
             partials: ctx.partials,
@@ -894,8 +894,7 @@ fn render_fun(ctx: render_context,
             ctag: ctag,
             template_path: ctx.ctx.template_path,
             template_extension: ctx.ctx.template_extension
-        })
-    };
+        })});
 
     render_helper({ tokens: tokens with ctx })
 }
@@ -1126,9 +1125,9 @@ mod tests {
         ctx0.insert("a", [ctx1].to_mustache());
         assert template.render(ctx0) == "01 a 35";
 
-        ctx0.insert("a", {|text| assert text == "1 {{n}} 3";
+        ctx0.insert("a", (|text| {assert text == "1 {{n}} 3";
             "foo"
-        }.to_mustache());
+        }).to_mustache());
         assert template.render(ctx0) == "0foo5";
     }
 
@@ -1204,7 +1203,7 @@ mod tests {
 
     fn convert_json_map(map: hashmap<str, json::json>) -> hashmap<str, data> {
         let d = str_hash();
-        for map.each { |key, value| d.insert(key, convert_json(value)); }
+        for map.each |key, value| {d.insert(key, convert_json(value)); }
         d
     }
 
@@ -1228,7 +1227,7 @@ mod tests {
 
         alt value {
           json::dict(d) {
-            for d.each { |key, value|
+            for d.each |key, value| {
                 alt value {
                   json::string(s) {
                     let file = key + ".mustache";
@@ -1270,10 +1269,10 @@ mod tests {
                 alt x {
                   json::dict(d) {
                     let mut xs = [];
-                    for d.each { |k,v|
+                    for d.each |k,v| {
                         let k = json::string(@k);
                         let v = to_list(v);
-                        vec::push(xs, json::list(@[k, v]));
+                        vec::push(xs, json::list(@[k, v]/~));
                     }
                     json::list(@xs)
                   }
@@ -1297,11 +1296,11 @@ mod tests {
         }
         assert result == expected;
 
-        vec::iter(partials) { |file| os::remove_file(file); }
+        do vec::iter(partials) |file| {os::remove_file(file);};
     }
 
     fn run_tests(spec: str) {
-        vec::iter(parse_spec_tests(spec)) { |json|
+        do vec::iter(parse_spec_tests(spec)) |json| {
             let test =  alt json {
               json::dict(m) { m }
               _ { fail }
@@ -1348,7 +1347,7 @@ mod tests {
 
     #[test]
     fn test_spec_lambdas() {
-        vec::iter(parse_spec_tests("spec/specs/~lambdas.json")) { |json|
+        do vec::iter(parse_spec_tests("spec/specs/~lambdas.json")) |json| {
             let test =  alt json {
               json::dict(m) { m }
               _ { fail }
@@ -1362,35 +1361,35 @@ mod tests {
 
             let lambda = alt test.get("name") {
               json::string(@"Interpolation") {
-                  { |_text| "world" }
+                  |_text| {"world" }
               }
               json::string(@"Interpolation - Expansion") {
-                  { |_text| "{{planet}}" }
+                  |_text| {"{{planet}}" }
               }
               json::string(@"Interpolation - Alternate Delimiters") {
-                  { |_text| "|planet| => {{planet}}" }
+                  |_text| {"|planet| => {{planet}}" }
               }
               json::string(@"Interpolation - Multiple Calls") {
                   let calls = @mut 0;
-                  { |_text| *calls += 1; int::str(*calls) }
+                  |_text| {*calls += 1; int::str(*calls) }
               }
               json::string(@"Escaping") {
-                  { |_text| ">" }
+                  |_text| {">" }
               }
               json::string(@"Section") {
-                  { |text| if text == "{{x}}" { "yes" } else { "no" } }
+                  |text| {if text == "{{x}}" { "yes" } else { "no" } }
               }
               json::string(@"Section - Expansion") {
-                  { |text: str| text + "{{planet}}" + text }
+                  |text: str| {text + "{{planet}}" + text }
               }
               json::string(@"Section - Alternate Delimiters") {
-                  { |text: str| text + "{{planet}} => |planet|" + text }
+                  |text: str| {text + "{{planet}} => |planet|" + text }
               }
               json::string(@"Section - Multiple Calls") {
-                  { |text| "__" + text + "__" }
+                  |text| {"__" + text + "__" }
               }
               json::string(@"Inverted Section") {
-                  { |_text| "" }
+                  |_text| {"" }
               }
               value { fail #fmt("%?", value) }
             };

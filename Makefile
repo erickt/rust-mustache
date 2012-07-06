@@ -12,7 +12,7 @@ check: bin/test-mustache
 	export RUST_LOG=mustache=1 && ./bin/test-mustache
 
 check1: bin/test-mustache
-	export RUST_LOG=mustache=3 && ./bin/test-mustache test_spec_comments
+	export RUST_LOG=mustache=3 && ./bin/test-mustache test_render_sections
 
 clean:
 	rm -rf bin
@@ -30,5 +30,5 @@ lib:
 	$(RUSTC) --out-dir bin -O mustache.rc
 
 bin/test-mustache: mustache.rc *.rs
-	$(RUSTC) -g --test -o $@ $<
+	$(RUSTC) --test -o $@ $<
 

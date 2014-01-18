@@ -1,3 +1,5 @@
+#[crate_id = "github.com/erickt/rust-mustache#moustache:0.1.0"];
+
 extern mod std;
 extern mod extra;
 

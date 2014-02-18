@@ -1,12 +1,14 @@
-extern mod std;
-extern mod extra;
+#[crate_id = "mustache"];
+#[crate_type = "lib"];
+
+extern crate serialize = "serialize#0.10-pre";
+#[cfg(test)] extern crate extra;
 
 use std::char;
 use std::hashmap::HashMap;
-use std::io::{ignore_io_error, File};
+use std::io::{File};
 use std::str;
-use std::util;
-use extra::serialize;
+use std::mem;
 
 /// Represents template data.
 #[deriving(Clone)]
@@ -30,6 +32,18 @@ pub struct Template {
     ctx: Context,
     tokens: ~[Token],
     partials: HashMap<~str, ~[Token]>
+}
+
+fn read_whole_file_utf8(path: &Path) -> Option<~str> {
+    match File::open(path) {
+        Ok(mut rdr) => {
+            match rdr.read_to_end() {
+                Ok(s2) => str::from_utf8_owned(s2),
+                _      => None
+            }
+        }
+        Err(..) => { None }
+    }
 }
 
 impl Context {
@@ -68,12 +82,7 @@ impl Context {
         let mut path = self.template_path.join(path);
         path.set_extension(self.template_extension.clone());
 
-        let s = match File::open(&path) {
-            Some(mut rdr) => str::from_utf8_owned(rdr.read_to_end()),
-            None => { return None; }
-        };
-
-        Some(self.compile(s.chars()))
+        read_whole_file_utf8(&path).map(|s| { self.compile(s.chars()) })
     }
 
     /// Renders a template from an iterator.
@@ -201,12 +210,12 @@ impl serialize::Encoder for Encoder {
     }
 
     fn emit_struct_field(&mut self, name: &str, _idx: uint, f: |&mut Encoder|) {
-        let mut m = match self.data.pop() {
+        let mut m = match self.data.pop().unwrap() {
             Map(m) => m,
             _ => fail!(),
         };
         f(self);
-        m.insert(name.to_owned(), self.data.pop());
+        m.insert(name.to_owned(), self.data.pop().unwrap());
         self.data.push(Map(m));
     }
 
@@ -245,12 +254,12 @@ impl serialize::Encoder for Encoder {
     }
 
     fn emit_seq_elt(&mut self, _idx: uint, f: |&mut Encoder|) {
-        let mut v = match self.data.pop() {
+        let mut v = match self.data.pop().unwrap() {
             Vec(v) => v,
             _ => fail!(),
         };
         f(self);
-        v.push(self.data.pop());
+        v.push(self.data.pop().unwrap());
         self.data.push(Vec(v));
     }
 
@@ -261,23 +270,23 @@ impl serialize::Encoder for Encoder {
 
     fn emit_map_elt_key(&mut self, _idx: uint, f: |&mut Encoder|) {
         f(self);
-        match *self.data.last() {
+        match *self.data.last().unwrap() {
             Str(_) => {}
             _ => fail!("error: key is not a string"),
         }
     }
 
     fn emit_map_elt_val(&mut self, _idx: uint, f: |&mut Encoder|) {
-        let k = match self.data.pop() {
+        let k = match self.data.pop().unwrap() {
             Str(s) => s,
             _ => fail!(),
         };
-        let mut m = match self.data.pop() {
+        let mut m = match self.data.pop().unwrap() {
             Map(m) => m,
             _ => fail!(),
         };
         f(self);
-        m.insert(k, self.data.pop());
+        m.insert(k, self.data.pop().unwrap());
         self.data.push(Map(m));
     }
 }
@@ -287,7 +296,7 @@ impl Template {
         let mut encoder = Encoder::new();
         data.encode(&mut encoder);
         assert_eq!(encoder.data.len(), 1);
-        self.render_data(encoder.data.pop())
+        self.render_data(encoder.data.pop().unwrap())
     }
 
     fn render_data(&self, data: Data) -> ~str {
@@ -483,7 +492,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
     fn add_text(&mut self) {
         if self.content != ~"" {
             let mut content = ~"";
-            util::swap(&mut content, &mut self.content);
+            mem::swap(&mut content, &mut self.content);
 
             self.tokens.push(Text(content));
         }
@@ -570,7 +579,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
 
         // Move the content to avoid a copy.
         let mut content = ~"";
-        util::swap(&mut content, &mut self.content);
+        mem::swap(&mut content, &mut self.content);
         let len = content.len();
 
         match content[0] as char {
@@ -628,7 +637,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
                         fail!(~"closing unopened section");
                     }
 
-                    let last = self.tokens.pop();
+                    let last = self.tokens.pop().unwrap();
 
                     match last {
                         IncompleteSection(section_name, inverted, osection, _) => {
@@ -684,7 +693,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
             '=' => {
                 self.eat_whitespace();
 
-                if (len > 2u && content.ends_with("=")) {
+                if len > 2u && content.ends_with("=") {
                     let s = self.check_content(content.slice(1, len - 1));
 
                     let pos = s.find(char::is_whitespace);
@@ -822,11 +831,9 @@ impl<'a, T: Iterator<char>> CompileContext<'a, T> {
                 // Insert a placeholder so we don't recurse off to infinity.
                 self.partials.insert(name.to_owned(), ~[]);
 
-                let _ignore = ignore_io_error();
-                match File::open(&path) {
-                    Some(mut rdr) => {
+                match read_whole_file_utf8(&path) {
+                    Some(s) => {
                         // XXX: HACK
-                        let s = str::from_utf8_owned(rdr.read_to_end());
                         let mut iter = s.chars();
 
                         let mut inner_ctx = CompileContext {
@@ -853,7 +860,9 @@ impl<'a, T: Iterator<char>> CompileContext<'a, T> {
     }
 }
 
-#[deriving(Clone)]
+// XXX: For some reason, rustc 0.10-pre cannot generate the Clone trait
+// automatically.
+//#[deriving(Clone)]
 struct RenderContext<'a> {
     ctx: Context,
     tokens: &'a [Token],
@@ -862,11 +871,25 @@ struct RenderContext<'a> {
     indent: ~str,
 }
 
+// XXX: Implement Clone ourself because of the reaons given above.
+// It fails on `partials`.
+impl<'a> Clone for RenderContext<'a> {
+    fn clone(&self) -> RenderContext<'a> {
+        RenderContext {
+            ctx: self.ctx.clone(),
+            tokens: self.tokens,
+            partials: self.partials,
+            stack: self.stack.clone(),
+            indent: self.indent.clone()
+        }
+    }
+}
+
 fn render_helper(ctx: &RenderContext) -> ~str {
     fn find(stack: &[Data], path: &[~str]) -> Option<Data> {
         // If we have an empty path, we just want the top value in our stack.
         if path.is_empty() {
-            return match stack.last_opt() {
+            return match stack.last() {
                 None => None,
                 Some(value) => Some(value.clone()),
             };
@@ -1109,16 +1132,16 @@ fn render_fun(ctx: &RenderContext,
 
 #[cfg(test)]
 mod tests {
-    use std::str;
     use std::hashmap::HashMap;
     use std::io::File;
     use extra::json;
-    use extra::serialize::Encodable;
+    use serialize::Encodable;
     use extra::tempfile;
     use super::{compile_str, render_str};
     use super::{Context, Encoder};
     use super::{Data, Str, Vec, Map};
     use super::{Token, Text, ETag, UTag, Section, Partial};
+    use super::read_whole_file_utf8;
 
     fn token_to_str(token: &Token) -> ~str {
         match *token {
@@ -1440,12 +1463,7 @@ mod tests {
     fn parse_spec_tests(src: &str) -> ~[json::Json] {
         let path = Path::new(src);
 
-        let mut rdr = match File::open(&path) {
-            Some(rdr) => rdr,
-            None => fail!(),
-        };
-
-        let s = str::from_utf8_owned(rdr.read_to_end());
+        let s = read_whole_file_utf8(&path).unwrap();
 
         match json::from_str(s) {
             Err(e) => fail!(e.to_str()),
@@ -1497,8 +1515,8 @@ mod tests {
                             path.push(*key + ".mustache");
 
                             match File::create(&path) {
-                                Some(mut wr) => wr.write(s.as_bytes()),
-                                None => fail!(),
+                                Ok(mut wr) => { if wr.write(s.as_bytes()).is_err() { fail!() } },
+                                Err(..) => fail!(),
                             }
                         }
                         _ => fail!(),
@@ -1564,7 +1582,7 @@ mod tests {
             data.encode(&mut encoder);
             assert_eq!(encoder.data.len(), 1);
 
-            run_test(test, encoder.data.pop());
+            run_test(test, encoder.data.pop().unwrap());
         }
     }
 

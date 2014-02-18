@@ -1,9 +1,8 @@
 RUSTC ?= rustc
-RUSTPKG ?= rustpkg
-RUST_FLAGS ?= -Z debug-info -O
+RUST_FLAGS ?= -O
 
 all:
-	$(RUSTPKG) $(RUST_FLAGS) install mustache
+	$(RUSTC) $(RUST_FLAGS) src/mustache/lib.rs
 
 check:
 	mkdir -p bin

@@ -37,7 +37,7 @@ pub enum Data<'a> {
     Fun(|~str|: 'a -> ~str),
 }
 
-impl<'a> Eq for Data<'a> {
+impl<'a> PartialEq for Data<'a> {
     #[inline]
     fn eq(&self, other: &Data<'a>) -> bool {
         match (self, other) {

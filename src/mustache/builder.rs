@@ -1,4 +1,4 @@
-use collections::HashMap;
+use std::collections::hashmap::HashMap;
 use serialize::Encodable;
 
 use encoder;

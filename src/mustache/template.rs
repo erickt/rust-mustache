@@ -2,7 +2,7 @@ use std::io::MemWriter;
 use std::mem;
 use std::str;
 use serialize::Encodable;
-use collections::HashMap;
+use std::collections::hashmap::HashMap;
 
 use compiler::Compiler;
 use parser::{Token, Text, ETag, UTag, Section, Partial};

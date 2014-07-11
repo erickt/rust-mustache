@@ -1,6 +1,6 @@
 use std::io::{File, FileNotFound};
 use std::str;
-use collections::HashMap;
+use std::collections::hashmap::HashMap;
 
 use parser::{Parser, Token};
 use super::Context;

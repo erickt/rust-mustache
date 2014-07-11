@@ -4,7 +4,7 @@ extern crate collections;
 use std::io::IoError;
 use std::fmt;
 use std::str;
-use collections::hashmap::HashMap;
+use std::collections::hashmap::HashMap;
 
 use super::{Data, Str, Bool, Vec, Map};
 

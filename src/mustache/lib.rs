@@ -15,7 +15,7 @@ extern crate log;
 use std::fmt;
 use std::io::File;
 use std::str;
-use collections::HashMap;
+use std::collections::hashmap::HashMap;
 
 pub use builder::{MapBuilder, VecBuilder};
 pub use encoder::{Encoder, EncoderResult};

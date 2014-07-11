@@ -8,6 +8,7 @@
 
 extern crate collections;
 extern crate serialize;
+extern crate debug;
 
 #[phase(plugin, link)]
 extern crate log;

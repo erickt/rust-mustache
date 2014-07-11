@@ -9,7 +9,7 @@
 extern crate collections;
 extern crate serialize;
 
-#[phase(syntax, link)]
+#[phase(plugin, link)]
 extern crate log;
 
 use std::fmt;

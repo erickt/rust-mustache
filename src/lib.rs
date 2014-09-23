@@ -32,7 +32,7 @@ mod template;
 pub enum Data<'a> {
     Str(String),
     Bool(bool),
-    Vec(Vec<Data<'a>>),
+    Vect(Vec<Data<'a>>),
     Map(HashMap<String, Data<'a>>),
     Fun(RefCell<|String|: 'a -> String>),
 }
@@ -43,7 +43,7 @@ impl<'a> PartialEq for Data<'a> {
         match (self, other) {
             (&Str(ref v0), &Str(ref v1)) => v0 == v1,
             (&Bool(ref v0), &Bool(ref v1)) => v0 == v1,
-            (&Vec(ref v0), &Vec(ref v1)) => v0 == v1,
+            (&Vect(ref v0), &Vect(ref v1)) => v0 == v1,
             (&Map(ref v0), &Map(ref v1)) => v0 == v1,
             (&Fun(_), &Fun(_)) => fail!("cannot compare closures"),
             (_, _) => false,
@@ -56,7 +56,7 @@ impl<'a> fmt::Show for Data<'a> {
         match *self {
             Str(ref v) => write!(f, "Str({})", v),
             Bool(v) => write!(f, "Bool({})", v),
-            Vec(ref v) => write!(f, "Vec({})", v),
+            Vect(ref v) => write!(f, "Vec({})", v),
             Map(ref v) => write!(f, "Map({})", v),
             Fun(_) => write!(f, "Fun(...)"),
         }

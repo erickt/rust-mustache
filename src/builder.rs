@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use serialize::Encodable;
 
 use encoder;
-use encoder::{Encoder, Error};
-use super::{Data, Str, Bool, Vec, Map, Fun};
+use encoder::Encoder;
+use error::Error;
+use data::Data;
 
 /// `MapBuilder` is a helper type that construct `Data` types.
 pub struct MapBuilder<'a> {
@@ -52,7 +53,7 @@ impl<'a> MapBuilder<'a> {
         K: StrAllocating, V: StrAllocating
     >(self, key: K, value: V) -> MapBuilder<'a> {
         let MapBuilder { mut data } = self;
-        data.insert(key.into_string(), Str(value.into_string()));
+        data.insert(key.into_string(), Data::Str(value.into_string()));
         MapBuilder { data: data }
     }
 
@@ -67,7 +68,7 @@ impl<'a> MapBuilder<'a> {
     #[inline]
     pub fn insert_bool<K: StrAllocating>(self, key: K, value: bool) -> MapBuilder<'a> {
         let MapBuilder { mut data } = self;
-        data.insert(key.into_string(), Bool(value));
+        data.insert(key.into_string(), Data::Bool(value));
         MapBuilder { data: data }
     }
 
@@ -131,14 +132,14 @@ impl<'a> MapBuilder<'a> {
     #[inline]
     pub fn insert_fn<K: StrAllocating>(self, key: K, f: |String|: 'a -> String) -> MapBuilder<'a> {
         let MapBuilder { mut data } = self;
-        data.insert(key.into_string(), Fun(RefCell::new(f)));
+        data.insert(key.into_string(), Data::Fun(RefCell::new(f)));
         MapBuilder { data: data }
     }
 
     /// Return the built `Data`.
     #[inline]
     pub fn build(self) -> Data<'a> {
-        Map(self.data)
+        Data::Map(self.data)
     }
 }
 
@@ -186,7 +187,7 @@ impl<'a> VecBuilder<'a> {
     #[inline]
     pub fn push_str<T: StrAllocating>(self, value: T) -> VecBuilder<'a> {
         let VecBuilder { mut data } = self;
-        data.push(Str(value.into_string()));
+        data.push(Data::Str(value.into_string()));
         VecBuilder { data: data }
     }
 
@@ -202,7 +203,7 @@ impl<'a> VecBuilder<'a> {
     #[inline]
     pub fn push_bool(self, value: bool) -> VecBuilder<'a> {
         let VecBuilder { mut data } = self;
-        data.push(Bool(value));
+        data.push(Data::Bool(value));
         VecBuilder { data: data }
     }
 
@@ -266,13 +267,13 @@ impl<'a> VecBuilder<'a> {
     #[inline]
     pub fn push_fn(self, f: |String|: 'a -> String) -> VecBuilder<'a> {
         let VecBuilder { mut data } = self;
-        data.push(Fun(RefCell::new(f)));
+        data.push(Data::Fun(RefCell::new(f)));
         VecBuilder { data: data }
     }
 
     #[inline]
     pub fn build(self) -> Data<'a> {
-        Vec(self.data)
+        Data::Vec(self.data)
     }
 }
 
@@ -280,34 +281,34 @@ impl<'a> VecBuilder<'a> {
 mod tests {
     use std::collections::HashMap;
 
-    use super::super::{Str, Bool, Vec, Map, Fun};
+    use data::Data;
     use super::{MapBuilder, VecBuilder};
 
     #[test]
     fn test_empty_builders() {
         assert_eq!(
             MapBuilder::new().build(),
-            Map(HashMap::new()));
+            Data::Map(HashMap::new()));
 
         assert_eq!(
             VecBuilder::new().build(),
-            Vec(Vec::new()));
+            Data::Vec(Vec::new()));
     }
 
     #[test]
     fn test_builders() {
         let mut pride_and_prejudice = HashMap::new();
-        pride_and_prejudice.insert("title".to_string(), Str("Pride and Prejudice".to_string()));
-        pride_and_prejudice.insert("publish_date".to_string(), Str("1813".to_string()));
+        pride_and_prejudice.insert("title".to_string(), Data::Str("Pride and Prejudice".to_string()));
+        pride_and_prejudice.insert("publish_date".to_string(), Data::Str("1813".to_string()));
 
         let mut m = HashMap::new();
-        m.insert("first_name".to_string(), Str("Jane".to_string()));
-        m.insert("last_name".to_string(), Str("Austen".to_string()));
-        m.insert("age".to_string(), Str("41".to_string()));
-        m.insert("died".to_string(), Bool(true));
-        m.insert("works".to_string(), Vec(vec!(
-            Str("Sense and Sensibility".to_string()),
-            Map(pride_and_prejudice))));
+        m.insert("first_name".to_string(), Data::Str("Jane".to_string()));
+        m.insert("last_name".to_string(), Data::Str("Austen".to_string()));
+        m.insert("age".to_string(), Data::Str("41".to_string()));
+        m.insert("died".to_string(), Data::Bool(true));
+        m.insert("works".to_string(), Data::Vec(vec!(
+            Data::Str("Sense and Sensibility".to_string()),
+            Data::Map(pride_and_prejudice))));
 
         assert_eq!(
             MapBuilder::new()
@@ -325,7 +326,7 @@ mod tests {
                         })
                 })
                 .build(),
-            Map(m));
+            Data::Map(m));
     }
 
     #[test]
@@ -342,9 +343,9 @@ mod tests {
             .build();
 
         match data {
-            Map(m) => {
-                match *m.find_equiv(&("count")).unwrap() {
-                    Fun(ref f) => {
+            Data::Map(m) => {
+                match *m.get("count").unwrap() {
+                    Data::Fun(ref f) => {
                         let f = &mut *f.borrow_mut();
                         assert_eq!((*f)("count: ".to_string()), "count: 1".to_string());
                         assert_eq!((*f)("count: ".to_string()), "count: 2".to_string());
@@ -371,9 +372,9 @@ mod tests {
             .build();
 
         match data {
-            Vec(vs) => {
+            Data::Vec(vs) => {
                 match vs.as_slice() {
-                    [Fun(ref f)] => {
+                    [Data::Fun(ref f)] => {
                         let f = &mut *f.borrow_mut();
                         assert_eq!((*f)("count: ".to_string()), "count: 1".to_string());
                         assert_eq!((*f)("count: ".to_string()), "count: 2".to_string());

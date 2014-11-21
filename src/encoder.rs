@@ -1,9 +1,8 @@
 use std::collections::HashMap;
-use std::fmt;
-use std::io::IoError;
 use serialize;
 
-use super::{Data, Str, Bool, Vec, Map};
+use data::Data;
+use error::Error;
 
 pub struct Encoder<'a> {
     pub data: Vec<Data<'a>>,
@@ -15,57 +14,36 @@ impl<'a> Encoder<'a> {
     }
 }
 
-#[deriving(PartialEq)]
-pub enum Error {
-    UnsupportedType,
-    InvalidStr,
-    MissingElements,
-    KeyIsNotString,
-    IoError(IoError),
-}
-
-impl fmt::Show for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            UnsupportedType => "unsupported type".fmt(f),
-            InvalidStr => "invalid str".fmt(f),
-            MissingElements => "no elements in value".fmt(f),
-            KeyIsNotString => "key is not a string".fmt(f),
-            IoError(ref err) => err.fmt(f),
-        }
-    }
-}
-
 pub type EncoderResult = Result<(), Error>;
 
 impl<'a> serialize::Encoder<Error> for Encoder<'a> {
-    fn emit_nil(&mut self) -> EncoderResult { Err(UnsupportedType) }
+    fn emit_nil(&mut self) -> EncoderResult { Err(Error::UnsupportedType) }
 
-    fn emit_uint(&mut self, v: uint) -> EncoderResult { self.data.push(Str(v.to_string())); Ok(()) }
-    fn emit_u64(&mut self, v: u64) -> EncoderResult   { self.data.push(Str(v.to_string())); Ok(()) }
-    fn emit_u32(&mut self, v: u32) -> EncoderResult   { self.data.push(Str(v.to_string())); Ok(()) }
-    fn emit_u16(&mut self, v: u16) -> EncoderResult   { self.data.push(Str(v.to_string())); Ok(()) }
-    fn emit_u8(&mut self, v: u8) -> EncoderResult     { self.data.push(Str(v.to_string())); Ok(()) }
+    fn emit_uint(&mut self, v: uint) -> EncoderResult { self.emit_str(v.to_string().as_slice()) }
+    fn emit_u64(&mut self, v: u64) -> EncoderResult   { self.emit_str(v.to_string().as_slice()) }
+    fn emit_u32(&mut self, v: u32) -> EncoderResult   { self.emit_str(v.to_string().as_slice()) }
+    fn emit_u16(&mut self, v: u16) -> EncoderResult   { self.emit_str(v.to_string().as_slice()) }
+    fn emit_u8(&mut self, v: u8) -> EncoderResult     { self.emit_str(v.to_string().as_slice()) }
 
-    fn emit_int(&mut self, v: int) -> EncoderResult { self.data.push(Str(v.to_string())); Ok(()) }
-    fn emit_i64(&mut self, v: i64) -> EncoderResult { self.data.push(Str(v.to_string())); Ok(()) }
-    fn emit_i32(&mut self, v: i32) -> EncoderResult { self.data.push(Str(v.to_string())); Ok(()) }
-    fn emit_i16(&mut self, v: i16) -> EncoderResult { self.data.push(Str(v.to_string())); Ok(()) }
-    fn emit_i8(&mut self, v: i8) -> EncoderResult   { self.data.push(Str(v.to_string())); Ok(()) }
+    fn emit_int(&mut self, v: int) -> EncoderResult { self.emit_str(v.to_string().as_slice()) }
+    fn emit_i64(&mut self, v: i64) -> EncoderResult { self.emit_str(v.to_string().as_slice()) }
+    fn emit_i32(&mut self, v: i32) -> EncoderResult { self.emit_str(v.to_string().as_slice()) }
+    fn emit_i16(&mut self, v: i16) -> EncoderResult { self.emit_str(v.to_string().as_slice()) }
+    fn emit_i8(&mut self, v: i8) -> EncoderResult   { self.emit_str(v.to_string().as_slice()) }
 
-    fn emit_bool(&mut self, v: bool) -> EncoderResult { self.data.push(Bool(v)); Ok(()) }
+    fn emit_bool(&mut self, v: bool) -> EncoderResult { self.data.push(Data::Bool(v)); Ok(()) }
 
-    fn emit_f64(&mut self, v: f64) -> EncoderResult { self.data.push(Str(v.to_string())); Ok(()) }
-    fn emit_f32(&mut self, v: f32) -> EncoderResult { self.data.push(Str(v.to_string())); Ok(()) }
+    fn emit_f64(&mut self, v: f64) -> EncoderResult { self.emit_str(v.to_string().as_slice()) }
+    fn emit_f32(&mut self, v: f32) -> EncoderResult { self.emit_str(v.to_string().as_slice()) }
 
     fn emit_char(&mut self, v: char) -> EncoderResult {
-        self.data.push(Str(String::from_char(1, v)));
+        self.data.push(Data::Str(String::from_char(1, v)));
         Ok(())
     }
-    fn emit_str(&mut self, v: &str) -> EncoderResult { self.data.push(Str(v.to_string())); Ok(()) }
+    fn emit_str(&mut self, v: &str) -> EncoderResult { self.data.push(Data::Str(v.to_string())); Ok(()) }
 
     fn emit_enum(&mut self, _name: &str, _f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
-        Err(UnsupportedType)
+        Err(Error::UnsupportedType)
     }
 
     fn emit_enum_variant(&mut self,
@@ -73,13 +51,13 @@ impl<'a> serialize::Encoder<Error> for Encoder<'a> {
                          _id: uint,
                          _len: uint,
                          _f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
-        Err(UnsupportedType)
+        Err(Error::UnsupportedType)
     }
 
     fn emit_enum_variant_arg(&mut self,
                              _a_idx: uint,
                              _f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
-        Err(UnsupportedType)
+        Err(Error::UnsupportedType)
     }
 
     fn emit_enum_struct_variant(&mut self,
@@ -87,21 +65,21 @@ impl<'a> serialize::Encoder<Error> for Encoder<'a> {
                                 _v_id: uint,
                                 _len: uint,
                                 _f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
-        Err(UnsupportedType)
+        Err(Error::UnsupportedType)
     }
 
     fn emit_enum_struct_variant_field(&mut self,
                                       _f_name: &str,
                                       _f_idx: uint,
                                       _f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
-        Err(UnsupportedType)
+        Err(Error::UnsupportedType)
     }
 
     fn emit_struct(&mut self,
                    _name: &str,
                    _len: uint,
                    f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
-        self.data.push(Map(HashMap::new()));
+        self.data.push(Data::Map(HashMap::new()));
         f(self)
     }
 
@@ -110,16 +88,16 @@ impl<'a> serialize::Encoder<Error> for Encoder<'a> {
                          _idx: uint,
                          f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
         let mut m = match self.data.pop() {
-            Some(Map(m)) => m,
-            _ => { return Err(UnsupportedType); }
+            Some(Data::Map(m)) => m,
+            _ => { return Err(Error::UnsupportedType); }
         };
         try!(f(self));
         let data = match self.data.pop() {
             Some(d) => d,
-            _ => { return Err(UnsupportedType); }
+            _ => { return Err(Error::UnsupportedType); }
         };
         m.insert(name.to_string(), data);
-        self.data.push(Map(m));
+        self.data.push(Data::Map(m));
         Ok(())
     }
 
@@ -146,39 +124,39 @@ impl<'a> serialize::Encoder<Error> for Encoder<'a> {
 
     // Specialized types:
     fn emit_option(&mut self, _f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
-        Err(UnsupportedType)
+        Err(Error::UnsupportedType)
     }
 
     fn emit_option_none(&mut self) -> EncoderResult {
-        Err(UnsupportedType)
+        Err(Error::UnsupportedType)
     }
 
     fn emit_option_some(&mut self, _f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
-        Err(UnsupportedType)
+        Err(Error::UnsupportedType)
     }
 
     fn emit_seq(&mut self, _len: uint, f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
-        self.data.push(Vec(Vec::new()));
+        self.data.push(Data::Vec(Vec::new()));
         f(self)
     }
 
     fn emit_seq_elt(&mut self, _idx: uint, f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
         let mut v = match self.data.pop() {
-            Some(Vec(v)) => v,
-            _ => { return Err(UnsupportedType); }
+            Some(Data::Vec(v)) => v,
+            _ => { return Err(Error::UnsupportedType); }
         };
         try!(f(self));
         let data = match self.data.pop() {
             Some(d) => d,
-            _ => { return Err(UnsupportedType); }
+            _ => { return Err(Error::UnsupportedType); }
         };
         v.push(data);
-        self.data.push(Vec(v));
+        self.data.push(Data::Vec(v));
         Ok(())
     }
 
     fn emit_map(&mut self, _len: uint, f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
-        self.data.push(Map(HashMap::new()));
+        self.data.push(Data::Map(HashMap::new()));
         f(self)
     }
 
@@ -186,21 +164,21 @@ impl<'a> serialize::Encoder<Error> for Encoder<'a> {
         try!(f(self));
         let last = match self.data.last() {
             Some(d) => d,
-            None => { return Err(MissingElements); }
+            None => { return Err(Error::MissingElements); }
         };
         match *last {
-            Str(_) => Ok(()),
-            _ => Err(KeyIsNotString),
+            Data::Str(_) => Ok(()),
+            _ => Err(Error::KeyIsNotString),
         }
     }
 
     fn emit_map_elt_val(&mut self, _idx: uint, f: |&mut Encoder<'a>| -> EncoderResult) -> EncoderResult {
         let k = match self.data.pop() {
-            Some(Str(s)) => s,
-            _ => { return Err(KeyIsNotString); }
+            Some(Data::Str(s)) => s,
+            _ => { return Err(Error::KeyIsNotString); }
         };
         let mut m = match self.data.pop() {
-            Some(Map(m)) => m,
+            Some(Data::Map(m)) => m,
             _ => panic!("Expected a map"),
         };
         try!(f(self));
@@ -209,7 +187,7 @@ impl<'a> serialize::Encoder<Error> for Encoder<'a> {
             None => panic!("Error: Nothing to pop!"),
         };
         m.insert(k, popped);
-        self.data.push(Map(m));
+        self.data.push(Data::Map(m));
         Ok(())
     }
 }

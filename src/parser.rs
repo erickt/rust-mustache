@@ -1,6 +1,10 @@
 use std::char;
 use std::mem;
 
+use self::Token::{Text, ETag, UTag, Section, IncompleteSection, Partial};
+use self::TokenClass::{Normal, StandAlone, WhiteSpace};
+use self::ParserState::{TEXT, OTAG, TAG, CTAG};
+
 /// `Token` is a section of a compiled mustache string.
 #[deriving(Clone, Show)]
 pub enum Token {
@@ -16,7 +20,6 @@ enum TokenClass {
     Normal,
     StandAlone,
     WhiteSpace(String, uint),
-    NewLineWhiteSpace(String, uint),
 }
 
 /// `Parser` parses a string into a series of `Token`s.
@@ -119,7 +122,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
                             self.state = TAG;
                         }
                     } else {
-                        self.content.push_char(ch);
+                        self.content.push(ch);
                     }
                     self.bump();
                 }
@@ -137,18 +140,18 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
                         // so far to the string.
                         self.state = TEXT;
                         self.not_otag();
-                        self.content.push_char(ch);
+                        self.content.push(ch);
                     }
                     self.bump();
                 }
                 TAG => {
                     if self.content.is_empty() && ch == '{' {
                         curly_brace_tag = true;
-                        self.content.push_char(ch);
+                        self.content.push(ch);
                         self.bump();
                     } else if curly_brace_tag && ch == '}' {
                         curly_brace_tag = false;
-                        self.content.push_char(ch);
+                        self.content.push(ch);
                         self.bump();
                     } else if ch == self.ctag_chars[0] {
                         if self.ctag_chars.len() > 1 {
@@ -160,7 +163,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
                             self.state = TEXT;
                         }
                     } else {
-                        self.content.push_char(ch);
+                        self.content.push(ch);
                         self.bump();
                     }
                 }
@@ -172,7 +175,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
                         } else {
                             self.state = TAG;
                             self.not_ctag();
-                            self.content.push_char(ch);
+                            self.content.push(ch);
                             self.bump();
                         }
                     } else {
@@ -276,7 +279,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
                 self.bump();
                 true
             }
-            WhiteSpace(s, pos) | NewLineWhiteSpace(s, pos) => {
+            WhiteSpace(s, pos) => {
                 if self.ch_is('\r') { self.bump(); }
                 self.bump();
 
@@ -465,7 +468,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
                 self.bump();
                 "".to_string()
             }
-            WhiteSpace(s, pos) | NewLineWhiteSpace(s, pos) => {
+            WhiteSpace(s, pos) => {
                 if self.ch_is('\r') { self.bump(); }
                 self.bump();
 
@@ -494,7 +497,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
             if !(i < self.tag_position) {
                 break
             }
-            self.content.push_char(*ch);
+            self.content.push(*ch);
         }
     }
 
@@ -503,7 +506,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
             if !(i < self.tag_position) {
                 break
             }
-            self.content.push_char(*ch);
+            self.content.push(*ch);
         }
     }
 

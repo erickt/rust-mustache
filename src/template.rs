@@ -6,11 +6,13 @@ use std::str;
 use serialize::Encodable;
 
 use compiler::Compiler;
-use parser::{Token, Text, ETag, UTag, Section, Partial};
+use data::Data;
+use encoder::Encoder;
 use encoder;
-use encoder::{Encoder, Error};
-
-use super::{Context, Data, Bool, Str, Vec, Map, Fun};
+use error::Error;
+use parser::Token;
+use parser;
+use context::Context;
 
 /// `Template` represents a compiled mustache file.
 #[deriving(Show, Clone)]
@@ -85,19 +87,19 @@ impl<'a> RenderContext<'a> {
         token: &Token
     ) {
         match *token {
-            Text(ref value) => {
+            Token::Text(ref value) => {
                 self.render_text(wr, value.as_slice());
             },
-            ETag(ref path, _) => {
+            Token::ETag(ref path, _) => {
                 self.render_etag(wr, stack, path.as_slice());
             }
-            UTag(ref path, _) => {
+            Token::UTag(ref path, _) => {
                 self.render_utag(wr, stack, path.as_slice());
             }
-            Section(ref path, true, ref children, _, _, _, _, _) => {
+            Token::Section(ref path, true, ref children, _, _, _, _, _) => {
                 self.render_inverted_section(wr, stack, path.as_slice(), children.as_slice());
             }
-            Section(ref path, false, ref children, ref otag, _, ref src, _, ref ctag) => {
+            Token::Section(ref path, false, ref children, ref otag, _, ref src, _, ref ctag) => {
                 self.render_section(
                     wr,
                     stack,
@@ -107,7 +109,7 @@ impl<'a> RenderContext<'a> {
                     otag.as_slice(),
                     ctag.as_slice())
             }
-            Partial(ref name, ref indent, _) => {
+            Token::Partial(ref name, ref indent, _) => {
                 self.render_partial(wr, stack, name.as_slice(), indent.as_slice());
             }
             _ => { panic!() }
@@ -187,12 +189,12 @@ impl<'a> RenderContext<'a> {
                 wr.write_str(self.indent.as_slice()).unwrap();
 
                 match *value {
-                    Str(ref value) => {
+                    Data::Str(ref value) => {
                         wr.write_str(value.as_slice()).unwrap();
                     }
 
                     // etags and utags use the default delimiter.
-                    Fun(ref f) => {
+                    Data::Fun(ref f) => {
                         let tokens = self.render_fun("", "{{", "}}", f);
                         self.render(wr, stack, tokens.as_slice());
                     }
@@ -212,8 +214,8 @@ impl<'a> RenderContext<'a> {
     ) {
         match self.find(path, stack) {
             None => { }
-            Some(&Bool(false)) => { }
-            Some(&Vec(ref xs)) if xs.is_empty() => { }
+            Some(&Data::Bool(false)) => { }
+            Some(&Data::Vec(ref xs)) if xs.is_empty() => { }
             Some(_) => { return; }
         }
 
@@ -234,23 +236,23 @@ impl<'a> RenderContext<'a> {
             None => { }
             Some(value) => {
                 match *value {
-                    Bool(true) => {
+                    Data::Bool(true) => {
                         self.render(wr, stack, children);
                     }
-                    Bool(false) => { }
-                    Vec(ref vs) => {
+                    Data::Bool(false) => { }
+                    Data::Vec(ref vs) => {
                         for v in vs.iter() {
                             stack.push(v);
                             self.render(wr, stack, children);
                             stack.pop();
                         }
                     }
-                    Map(_) => {
+                    Data::Map(_) => {
                         stack.push(value);
                         self.render(wr, stack, children);
                         stack.pop();
                     }
-                    Fun(ref f) => {
+                    Data::Fun(ref f) => {
                         let tokens = self.render_fun(src, otag, ctag, f);
                         self.render(wr, stack, tokens.as_slice())
                     }
@@ -267,7 +269,7 @@ impl<'a> RenderContext<'a> {
         name: &str,
         indent: &str
     ) {
-        match self.template.partials.find_equiv(&name) {
+        match self.template.partials.get(name) {
             None => { }
             Some(ref tokens) => {
                 let mut indent = self.indent + indent;
@@ -285,7 +287,7 @@ impl<'a> RenderContext<'a> {
         otag: &str,
         ctag: &str,
         f: &RefCell<|String| -> String>
-    ) -> Vec<Token> {
+    ) -> Vec<parser::Token> {
         let f = &mut *f.borrow_mut();
         let src = (*f)(src.to_string());
 
@@ -314,8 +316,8 @@ impl<'a> RenderContext<'a> {
 
         for data in stack.iter().rev() {
             match **data {
-                Map(ref m) => {
-                    match m.find_equiv(&path[0]) {
+                Data::Map(ref m) => {
+                    match m.get(&path[0]) {
                         Some(v) => {
                             value = Some(v);
                             break;
@@ -335,8 +337,8 @@ impl<'a> RenderContext<'a> {
 
         for part in path.slice_from(1).iter() {
             match *value {
-                Map(ref m) => {
-                    match m.find_equiv(part) {
+                Data::Map(ref m) => {
+                    match m.get(part) {
                         Some(v) => { value = v; }
                         None => { return None; }
                     }
@@ -358,11 +360,13 @@ mod tests {
     use serialize::json;
     use serialize::Encodable;
 
-    use encoder::{Encoder, Error};
+    use context::Context;
+    use data::Data;
+    use encoder::Encoder;
+    use error::Error;
+    use template::Template;
 
     use super::super::compile_str;
-    use super::super::{Data, Str, Vec, Map, Fun};
-    use super::super::{Context, Template};
 
     #[deriving(Encodable)]
     struct Name { name: String }
@@ -415,32 +419,32 @@ mod tests {
         let ctx = HashMap::new();
         let template = compile_str("0{{#a}}1 {{n}} 3{{/a}}5");
 
-        assert_eq!(render_data(&template, &Map(ctx)), "05".to_string());
+        assert_eq!(render_data(&template, &Data::Map(ctx)), "05".to_string());
 
         let mut ctx = HashMap::new();
-        ctx.insert("a".to_string(), Vec(Vec::new()));
+        ctx.insert("a".to_string(), Data::Vec(Vec::new()));
 
-        assert_eq!(render_data(&template, &Map(ctx)), "05".to_string());
+        assert_eq!(render_data(&template, &Data::Map(ctx)), "05".to_string());
 
         let mut ctx = HashMap::new();
-        ctx.insert("a".to_string(), Vec(Vec::new()));
-        assert_eq!(render_data(&template, &Map(ctx)), "05".to_string());
+        ctx.insert("a".to_string(), Data::Vec(Vec::new()));
+        assert_eq!(render_data(&template, &Data::Map(ctx)), "05".to_string());
 
         let mut ctx0 = HashMap::new();
         let ctx1 = HashMap::new();
-        ctx0.insert("a".to_string(), Vec(vec!(Map(ctx1))));
+        ctx0.insert("a".to_string(), Data::Vec(vec!(Data::Map(ctx1))));
 
-        assert_eq!(render_data(&template, &Map(ctx0)), "01  35".to_string());
+        assert_eq!(render_data(&template, &Data::Map(ctx0)), "01  35".to_string());
 
         let mut ctx0 = HashMap::new();
         let mut ctx1 = HashMap::new();
-        ctx1.insert("n".to_string(), Str("a".to_string()));
-        ctx0.insert("a".to_string(), Vec(vec!(Map(ctx1))));
-        assert_eq!(render_data(&template, &Map(ctx0)), "01 a 35".to_string());
+        ctx1.insert("n".to_string(), Data::Str("a".to_string()));
+        ctx0.insert("a".to_string(), Data::Vec(vec!(Data::Map(ctx1))));
+        assert_eq!(render_data(&template, &Data::Map(ctx0)), "01 a 35".to_string());
 
         let mut ctx = HashMap::new();
-        ctx.insert("a".to_string(), Fun(RefCell::new(|_text| "foo".to_string())));
-        assert_eq!(render_data(&template, &Map(ctx)), "0foo5".to_string());
+        ctx.insert("a".to_string(), Data::Fun(RefCell::new(|_text| "foo".to_string())));
+        assert_eq!(render_data(&template, &Data::Map(ctx)), "0foo5".to_string());
     }
 
     #[test]
@@ -448,22 +452,22 @@ mod tests {
         let template = compile_str("0{{^a}}1 3{{/a}}5");
 
         let ctx = HashMap::new();
-        assert_eq!(render_data(&template, &Map(ctx)), "01 35".to_string());
+        assert_eq!(render_data(&template, &Data::Map(ctx)), "01 35".to_string());
 
         let mut ctx = HashMap::new();
-        ctx.insert("a".to_string(), Vec(vec!()));
-        assert_eq!(render_data(&template, &Map(ctx)), "01 35".to_string());
+        ctx.insert("a".to_string(), Data::Vec(vec!()));
+        assert_eq!(render_data(&template, &Data::Map(ctx)), "01 35".to_string());
 
         let mut ctx0 = HashMap::new();
         let ctx1 = HashMap::new();
-        ctx0.insert("a".to_string(), Vec(vec!(Map(ctx1))));
-        assert_eq!(render_data(&template, &Map(ctx0)), "05".to_string());
+        ctx0.insert("a".to_string(), Data::Vec(vec!(Data::Map(ctx1))));
+        assert_eq!(render_data(&template, &Data::Map(ctx0)), "05".to_string());
 
         let mut ctx0 = HashMap::new();
         let mut ctx1 = HashMap::new();
-        ctx1.insert("n".to_string(), Str("a".to_string()));
-        ctx0.insert("a".to_string(), Vec(vec!(Map(ctx1))));
-        assert_eq!(render_data(&template, &Map(ctx0)), "05".to_string());
+        ctx1.insert("n".to_string(), Data::Str("a".to_string()));
+        ctx0.insert("a".to_string(), Data::Vec(vec!(Data::Map(ctx1))));
+        assert_eq!(render_data(&template, &Data::Map(ctx0)), "05".to_string());
     }
 
     #[test]
@@ -473,35 +477,35 @@ mod tests {
             .unwrap();
 
         let ctx = HashMap::new();
-        assert_eq!(render_data(&template, &Map(ctx)), "<h2>Names</h2>\n".to_string());
+        assert_eq!(render_data(&template, &Data::Map(ctx)), "<h2>Names</h2>\n".to_string());
 
         let mut ctx = HashMap::new();
-        ctx.insert("names".to_string(), Vec(vec!()));
-        assert_eq!(render_data(&template, &Map(ctx)), "<h2>Names</h2>\n".to_string());
+        ctx.insert("names".to_string(), Data::Vec(vec!()));
+        assert_eq!(render_data(&template, &Data::Map(ctx)), "<h2>Names</h2>\n".to_string());
 
         let mut ctx0 = HashMap::new();
         let ctx1 = HashMap::new();
-        ctx0.insert("names".to_string(), Vec(vec!(Map(ctx1))));
+        ctx0.insert("names".to_string(), Data::Vec(vec!(Data::Map(ctx1))));
         assert_eq!(
-            render_data(&template, &Map(ctx0)),
+            render_data(&template, &Data::Map(ctx0)),
             "<h2>Names</h2>\n  <strong></strong>\n\n".to_string());
 
         let mut ctx0 = HashMap::new();
         let mut ctx1 = HashMap::new();
-        ctx1.insert("name".to_string(), Str("a".to_string()));
-        ctx0.insert("names".to_string(), Vec(vec!(Map(ctx1))));
+        ctx1.insert("name".to_string(), Data::Str("a".to_string()));
+        ctx0.insert("names".to_string(), Data::Vec(vec!(Data::Map(ctx1))));
         assert_eq!(
-            render_data(&template, &Map(ctx0)),
+            render_data(&template, &Data::Map(ctx0)),
             "<h2>Names</h2>\n  <strong>a</strong>\n\n".to_string());
 
         let mut ctx0 = HashMap::new();
         let mut ctx1 = HashMap::new();
-        ctx1.insert("name".to_string(), Str("a".to_string()));
+        ctx1.insert("name".to_string(), Data::Str("a".to_string()));
         let mut ctx2 = HashMap::new();
-        ctx2.insert("name".to_string(), Str("<b>".to_string()));
-        ctx0.insert("names".to_string(), Vec(vec!(Map(ctx1), Map(ctx2))));
+        ctx2.insert("name".to_string(), Data::Str("<b>".to_string()));
+        ctx0.insert("names".to_string(), Data::Vec(vec!(Data::Map(ctx1), Data::Map(ctx2))));
         assert_eq!(
-            render_data(&template, &Map(ctx0)),
+            render_data(&template, &Data::Map(ctx0)),
             "<h2>Names</h2>\n  <strong>a</strong>\n\n  <strong>&lt;b&gt;</strong>\n\n".to_string());
     }
 
@@ -524,8 +528,8 @@ mod tests {
                 match json {
                     json::Object(d) => {
                         let mut d = d;
-                        match d.pop(&"tests".to_string()) {
-                            Some(json::List(tests)) => tests.move_iter().collect(),
+                        match d.remove("tests") {
+                            Some(json::List(tests)) => tests.into_iter().collect(),
                             _ => panic!("{}: tests key not a list", src),
                         }
                     }
@@ -553,13 +557,13 @@ mod tests {
         }
     }
 
-    fn run_test(test: json::Object, data: Data) {
-        let template = match test.find(&"template".to_string()) {
+    fn run_test(test: json::JsonObject, data: Data) {
+        let template = match test.get("template") {
             Some(&json::String(ref s)) => s.clone(),
             _ => panic!(),
         };
 
-        let expected = match test.find(&"expected".to_string()) {
+        let expected = match test.get("expected") {
             Some(&json::String(ref s)) => s.clone(),
             _ => panic!(),
         };
@@ -571,7 +575,7 @@ mod tests {
             Err(_) => panic!(),
         };
 
-        match test.find(&"partials".to_string()) {
+        match test.get("partials") {
             Some(value) => write_partials(tmpdir.path(), value),
             None => {},
         }
@@ -581,8 +585,8 @@ mod tests {
         let result = render_data(&template, &data);
 
         if result != expected {
-            println!("desc:     {}", test.find(&"desc".to_string()).unwrap().to_string());
-            println!("context:  {}", test.find(&"data".to_string()).unwrap().to_string());
+            println!("desc:     {}", test.get("desc").unwrap().to_string());
+            println!("context:  {}", test.get("data").unwrap().to_string());
             println!("=>");
             println!("template: {}", template);
             println!("expected: {}", expected);
@@ -593,13 +597,13 @@ mod tests {
     }
 
     fn run_tests(spec: &str) {
-        for json in parse_spec_tests(spec).move_iter() {
+        for json in parse_spec_tests(spec).into_iter() {
             let test = match json {
                 json::Object(m) => m,
                 _ => panic!(),
             };
 
-            let data = match test.find(&"data".to_string()) {
+            let data = match test.get("data") {
                 Some(data) => data.clone(),
                 None => panic!(),
             };
@@ -644,19 +648,19 @@ mod tests {
 
     #[test]
     fn test_spec_lambdas() {
-        for json in parse_spec_tests("spec/specs/~lambdas.json").move_iter() {
+        for json in parse_spec_tests("spec/specs/~lambdas.json").into_iter() {
             let mut test = match json {
                 json::Object(m) => m,
                 value => { panic!("{}", value) }
             };
 
-            let s = match test.pop(&"name".to_string()) {
+            let s = match test.remove("name") {
                 Some(json::String(s)) => s,
                 value => { panic!("{}", value) }
             };
 
             // Replace the lambda with rust code.
-            let data = match test.pop(&"data".to_string()) {
+            let data = match test.remove("data") {
                 Some(data) => data,
                 None => panic!(),
             };
@@ -665,7 +669,7 @@ mod tests {
             data.encode(&mut encoder).unwrap();
 
             let mut ctx = match encoder.data.pop().unwrap() {
-                Map(ctx) => ctx,
+                Data::Map(ctx) => ctx,
                 _ => panic!(),
             };
 
@@ -716,9 +720,9 @@ mod tests {
                 value => { panic!("{}", value) }
             };
 
-            ctx.insert("lambda".to_string(), Fun(RefCell::new(f)));
+            ctx.insert("lambda".to_string(), Data::Fun(RefCell::new(f)));
 
-            run_test(test, Map(ctx));
+            run_test(test, Data::Map(ctx));
         }
     }
 }

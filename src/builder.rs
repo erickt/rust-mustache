@@ -4,7 +4,7 @@ use serialize::Encodable;
 
 use encoder;
 use encoder::{Encoder, Error};
-use super::{Data, Str, Bool, Vec, Map, Fun};
+use super::{Data, StrData, Bool, Vect, Map, Fun};
 
 /// `MapBuilder` is a helper type that construct `Data` types.
 pub struct MapBuilder<'a> {
@@ -52,7 +52,7 @@ impl<'a> MapBuilder<'a> {
         K: StrAllocating, V: StrAllocating
     >(self, key: K, value: V) -> MapBuilder<'a> {
         let MapBuilder { mut data } = self;
-        data.insert(key.into_string(), Str(value.into_string()));
+        data.insert(key.into_string(), StrData(value.into_string()));
         MapBuilder { data: data }
     }
 
@@ -186,7 +186,7 @@ impl<'a> VecBuilder<'a> {
     #[inline]
     pub fn push_str<T: StrAllocating>(self, value: T) -> VecBuilder<'a> {
         let VecBuilder { mut data } = self;
-        data.push(Str(value.into_string()));
+        data.push(StrData(value.into_string()));
         VecBuilder { data: data }
     }
 
@@ -272,7 +272,7 @@ impl<'a> VecBuilder<'a> {
 
     #[inline]
     pub fn build(self) -> Data<'a> {
-        Vec(self.data)
+        Vect(self.data)
     }
 }
 
@@ -280,7 +280,7 @@ impl<'a> VecBuilder<'a> {
 mod tests {
     use std::collections::HashMap;
 
-    use super::super::{Str, Bool, Vec, Map, Fun};
+    use super::super::{Str, Bool, Vect, Map, Fun};
     use super::{MapBuilder, VecBuilder};
 
     #[test]
@@ -291,7 +291,7 @@ mod tests {
 
         assert_eq!(
             VecBuilder::new().build(),
-            Vec(Vec::new()));
+            Vect(Vec::new()));
     }
 
     #[test]

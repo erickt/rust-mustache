@@ -10,7 +10,7 @@ use parser::{Token, Text, ETag, UTag, Section, Partial};
 use encoder;
 use encoder::{Encoder, Error};
 
-use super::{Context, Data, Bool, Str, Vec, Map, Fun};
+use super::{Context, Data, Bool, StrData, Vect, Map, Fun};
 
 /// `Template` represents a compiled mustache file.
 #[deriving(Show, Clone)]
@@ -187,7 +187,7 @@ impl<'a> RenderContext<'a> {
                 wr.write_str(self.indent.as_slice()).unwrap();
 
                 match *value {
-                    Str(ref value) => {
+                    StrData(ref value) => {
                         wr.write_str(value.as_slice()).unwrap();
                     }
 
@@ -213,7 +213,7 @@ impl<'a> RenderContext<'a> {
         match self.find(path, stack) {
             None => { }
             Some(&Bool(false)) => { }
-            Some(&Vec(ref xs)) if xs.is_empty() => { }
+            Some(&Vect(ref xs)) if xs.is_empty() => { }
             Some(_) => { return; }
         }
 
@@ -238,7 +238,7 @@ impl<'a> RenderContext<'a> {
                         self.render(wr, stack, children);
                     }
                     Bool(false) => { }
-                    Vec(ref vs) => {
+                    Vect(ref vs) => {
                         for v in vs.iter() {
                             stack.push(v);
                             self.render(wr, stack, children);

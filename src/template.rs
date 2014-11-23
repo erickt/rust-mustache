@@ -529,7 +529,7 @@ mod tests {
                     json::Object(d) => {
                         let mut d = d;
                         match d.remove("tests") {
-                            Some(json::List(tests)) => tests.into_iter().collect(),
+                            Some(json::Json::Array(tests)) => tests.into_iter().collect(),
                             _ => panic!("{}: tests key not a list", src),
                         }
                     }

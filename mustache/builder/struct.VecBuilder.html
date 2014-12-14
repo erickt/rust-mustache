@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `VecBuilder` struct in crate `mustache`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, VecBuilder">
+
+    <title>mustache::builder::VecBuilder - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../main.css">
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <section class="sidebar">
+        
+        <p class='location'><a href='../index.html'>mustache</a>::<wbr><a href='index.html'>builder</a></p><div class='block struct'><h2>Structs</h2><a class='struct ' href='struct.MapBuilder.html'>MapBuilder</a><a class='struct current' href='struct.VecBuilder.html'>VecBuilder</a></div>
+    </section>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press 'S' to search, '?' for more options..."
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content struct">
+<h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>mustache</a>::<wbr><a href='index.html'>builder</a>::<wbr><a class='struct' href=''>VecBuilder</a><wbr></span><span class='out-of-band'><span id='render-detail'>
+            <a id="collapse-all" href="#">[-]
+            </a>&nbsp;<a id="expand-all" href="#">[+]</a>
+        </span><a id='src-346' href='../../src/mustache/builder.rs.html#146-148'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct VecBuilder&lt;'a&gt; {
+    // some fields omitted
+}</pre><h2 id='methods'>Methods</h2><h3 class='impl'><a class='stability Unmarked' title='No stability level'></a><code>impl&lt;'a&gt; <a class='struct' href='../../mustache/builder/struct.VecBuilder.html' title='mustache::builder::VecBuilder'>VecBuilder</a>&lt;'a&gt;</code></h3><div class='impl-items'><h4 id='method.new' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.new' class='fnname'>new</a>() -&gt; <a class='struct' href='../../mustache/builder/struct.VecBuilder.html' title='mustache::builder::VecBuilder'>VecBuilder</a>&lt;'a&gt;</code></h4>
+<div class='docblock'><p>Create a <code>VecBuilder</code></p>
+</div><h4 id='method.push' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.push' class='fnname'>push</a>&lt;T: <a class='trait' href='http://doc.rust-lang.org/nightly/serialize/serialize/trait.Encodable.html' title='serialize::serialize::Encodable'>Encodable</a>&lt;<a class='struct' href='../../mustache/struct.Encoder.html' title='mustache::Encoder'>Encoder</a>&lt;'a&gt;, <a class='enum' href='../../mustache/enum.Error.html' title='mustache::Error'>Error</a>&gt;&gt;(self, value: &amp;T) -&gt; <a class='enum' href='http://doc.rust-lang.org/nightly/core/result/enum.Result.html' title='core::result::Result'>Result</a>&lt;<a class='struct' href='../../mustache/builder/struct.VecBuilder.html' title='mustache::builder::VecBuilder'>VecBuilder</a>&lt;'a&gt;, <a class='enum' href='../../mustache/enum.Error.html' title='mustache::Error'>Error</a>&gt;</code></h4>
+<div class='docblock'><p>Add an <code>Encodable</code> to the <code>VecBuilder</code>.</p>
+<pre class='rust '>
+<span class='kw'>use</span> <span class='ident'>mustache</span>::{<span class='ident'>VecBuilder</span>, <span class='ident'>Data</span>};
+<span class='kw'>let</span> <span class='ident'>data</span>: <span class='ident'>Data</span> <span class='op'>=</span> <span class='ident'>VecBuilder</span>::<span class='ident'>new</span>()
+    .<span class='ident'>push</span>(<span class='kw-2'>&amp;</span> <span class='kw-2'>&amp;</span><span class='string'>&quot;Jane Austen&quot;</span>).<span class='ident'>unwrap</span>()
+    .<span class='ident'>push</span>(<span class='kw-2'>&amp;</span><span class='number'>41u</span>).<span class='ident'>unwrap</span>()
+    .<span class='ident'>build</span>();
+</pre>
+</div><h4 id='method.push_str' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.push_str' class='fnname'>push_str</a>&lt;T: <a class='trait' href='http://doc.rust-lang.org/nightly/collections/str/trait.StrAllocating.html' title='collections::str::StrAllocating'>StrAllocating</a>&gt;(self, value: T) -&gt; <a class='struct' href='../../mustache/builder/struct.VecBuilder.html' title='mustache::builder::VecBuilder'>VecBuilder</a>&lt;'a&gt;</code></h4>
+<div class='docblock'><p>Add a <code>String</code> to the <code>VecBuilder</code>.</p>
+<pre class='rust '>
+<span class='kw'>use</span> <span class='ident'>mustache</span>::<span class='ident'>VecBuilder</span>;
+<span class='kw'>let</span> <span class='ident'>data</span> <span class='op'>=</span> <span class='ident'>VecBuilder</span>::<span class='ident'>new</span>()
+    .<span class='ident'>push_str</span>(<span class='string'>&quot;Jane Austen&quot;</span>)
+    .<span class='ident'>push_str</span>(<span class='string'>&quot;Lewis Carroll&quot;</span>)
+    .<span class='ident'>build</span>();
+</pre>
+</div><h4 id='method.push_bool' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.push_bool' class='fnname'>push_bool</a>(self, value: <a href='http://doc.rust-lang.org/nightly/std/primitive.bool.html'>bool</a>) -&gt; <a class='struct' href='../../mustache/builder/struct.VecBuilder.html' title='mustache::builder::VecBuilder'>VecBuilder</a>&lt;'a&gt;</code></h4>
+<div class='docblock'><p>Add a <code>bool</code> to the <code>VecBuilder</code>.</p>
+<pre class='rust '>
+<span class='kw'>use</span> <span class='ident'>mustache</span>::<span class='ident'>VecBuilder</span>;
+<span class='kw'>let</span> <span class='ident'>data</span> <span class='op'>=</span> <span class='ident'>VecBuilder</span>::<span class='ident'>new</span>()
+    .<span class='ident'>push_bool</span>(<span class='boolval'>false</span>)
+    .<span class='ident'>push_bool</span>(<span class='boolval'>true</span>)
+    .<span class='ident'>build</span>();
+</pre>
+</div><h4 id='method.push_vec' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.push_vec' class='fnname'>push_vec</a>(self, f: |<a class='struct' href='../../mustache/builder/struct.VecBuilder.html' title='mustache::builder::VecBuilder'>VecBuilder</a>&lt;'a&gt;| -&gt; <a class='struct' href='../../mustache/builder/struct.VecBuilder.html' title='mustache::builder::VecBuilder'>VecBuilder</a>&lt;'a&gt;) -&gt; <a class='struct' href='../../mustache/builder/struct.VecBuilder.html' title='mustache::builder::VecBuilder'>VecBuilder</a>&lt;'a&gt;</code></h4>
+<div class='docblock'><p>Add a <code>Vec</code> to the <code>MapBuilder</code>.</p>
+<pre class='rust '>
+<span class='kw'>use</span> <span class='ident'>mustache</span>::<span class='ident'>VecBuilder</span>;
+<span class='kw'>let</span> <span class='ident'>data</span> <span class='op'>=</span> <span class='ident'>VecBuilder</span>::<span class='ident'>new</span>()
+    .<span class='ident'>push_vec</span>(<span class='op'>|</span><span class='ident'>builder</span><span class='op'>|</span> {
+        <span class='ident'>builder</span>
+            .<span class='ident'>push_str</span>(<span class='string'>&quot;Jane Austen&quot;</span>.<span class='ident'>to_string</span>())
+            .<span class='ident'>push_str</span>(<span class='string'>&quot;Lewis Carroll&quot;</span>.<span class='ident'>to_string</span>())
+    })
+    .<span class='ident'>build</span>();
+</pre>
+</div><h4 id='method.push_map' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.push_map' class='fnname'>push_map</a>(self, f: |<a class='struct' href='../../mustache/builder/struct.MapBuilder.html' title='mustache::builder::MapBuilder'>MapBuilder</a>&lt;'a&gt;| -&gt; <a class='struct' href='../../mustache/builder/struct.MapBuilder.html' title='mustache::builder::MapBuilder'>MapBuilder</a>&lt;'a&gt;) -&gt; <a class='struct' href='../../mustache/builder/struct.VecBuilder.html' title='mustache::builder::VecBuilder'>VecBuilder</a>&lt;'a&gt;</code></h4>
+<div class='docblock'><p>Add a <code>Map</code> to the <code>VecBuilder</code>.</p>
+<pre class='rust '>
+<span class='kw'>use</span> <span class='ident'>mustache</span>::<span class='ident'>VecBuilder</span>;
+<span class='kw'>let</span> <span class='ident'>data</span> <span class='op'>=</span> <span class='ident'>VecBuilder</span>::<span class='ident'>new</span>()
+    .<span class='ident'>push_map</span>(<span class='op'>|</span><span class='ident'>builder</span><span class='op'>|</span> {
+        <span class='ident'>builder</span>
+            .<span class='ident'>insert_str</span>(<span class='string'>&quot;first_name&quot;</span>.<span class='ident'>to_string</span>(), <span class='string'>&quot;Jane&quot;</span>.<span class='ident'>to_string</span>())
+            .<span class='ident'>insert_str</span>(<span class='string'>&quot;last_name&quot;</span>.<span class='ident'>to_string</span>(), <span class='string'>&quot;Austen&quot;</span>.<span class='ident'>to_string</span>())
+    })
+    .<span class='ident'>push_map</span>(<span class='op'>|</span><span class='ident'>builder</span><span class='op'>|</span> {
+        <span class='ident'>builder</span>
+            .<span class='ident'>insert_str</span>(<span class='string'>&quot;first_name&quot;</span>.<span class='ident'>to_string</span>(), <span class='string'>&quot;Lewis&quot;</span>.<span class='ident'>to_string</span>())
+            .<span class='ident'>insert_str</span>(<span class='string'>&quot;last_name&quot;</span>.<span class='ident'>to_string</span>(), <span class='string'>&quot;Carroll&quot;</span>.<span class='ident'>to_string</span>())
+    })
+    .<span class='ident'>build</span>();
+</pre>
+</div><h4 id='method.push_fn' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.push_fn' class='fnname'>push_fn</a>(self, f: |<a class='struct' href='http://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>| -&gt; <a class='struct' href='http://doc.rust-lang.org/nightly/collections/string/struct.String.html' title='collections::string::String'>String</a>) -&gt; <a class='struct' href='../../mustache/builder/struct.VecBuilder.html' title='mustache::builder::VecBuilder'>VecBuilder</a>&lt;'a&gt;</code></h4>
+<div class='docblock'><p>Add a function to the <code>VecBuilder</code>.</p>
+<pre class='rust '>
+<span class='kw'>use</span> <span class='ident'>mustache</span>::<span class='ident'>VecBuilder</span>;
+<span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>count</span> <span class='op'>=</span> <span class='number'>0</span>;
+<span class='kw'>let</span> <span class='ident'>data</span> <span class='op'>=</span> <span class='ident'>VecBuilder</span>::<span class='ident'>new</span>()
+    .<span class='ident'>push_fn</span>(<span class='op'>|</span><span class='ident'>s</span><span class='op'>|</span> {
+        <span class='ident'>count</span> <span class='op'>+=</span> <span class='number'>1u</span>;
+        <span class='ident'>s</span> <span class='op'>+</span> <span class='ident'>count</span>.<span class='ident'>to_string</span>()
+    })
+    .<span class='ident'>build</span>();
+</pre>
+</div><h4 id='method.build' class='method'><a class='stability Unmarked' title='No stability level'></a><code>fn <a href='#method.build' class='fnname'>build</a>(self) -&gt; <a class='enum' href='../../mustache/enum.Data.html' title='mustache::Data'>Data</a>&lt;'a&gt;</code></h4>
+</div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <div id="help" class="hidden">
+        <div class="shortcuts">
+            <h1>Keyboard shortcuts</h1>
+            <dl>
+                <dt>?</dt>
+                <dd>Show this help dialog</dd>
+                <dt>S</dt>
+                <dd>Focus the search field</dd>
+                <dt>&larrb;</dt>
+                <dd>Move up in search results</dd>
+                <dt>&rarrb;</dt>
+                <dd>Move down in search results</dd>
+                <dt>&#9166;</dt>
+                <dd>Go to active search result</dd>
+            </dl>
+        </div>
+        <div class="infos">
+            <h1>Search tricks</h1>
+            <p>
+                Prefix searches with a type followed by a colon (e.g.
+                <code>fn:</code>) to restrict the search to a given type.
+            </p>
+            <p>
+                Accepted types are: <code>fn</code>, <code>mod</code>,
+                <code>struct</code>, <code>enum</code>,
+                <code>trait</code>, <code>typedef</code> (or
+                <code>tdef</code>).
+            </p>
+        </div>
+    </div>
+
+    
+
+    <script>
+        window.rootPath = "../../";
+        window.currentCrate = "mustache";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../jquery.js"></script>
+    <script src="../../main.js"></script>
+    
+    <script async src="../../search-index.js"></script>
+</body>
+</html>

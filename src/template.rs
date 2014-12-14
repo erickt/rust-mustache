@@ -122,7 +122,7 @@ impl<'a> RenderContext<'a> {
         value: &str
     ) {
         // Indent the lines.
-        if self.indent.equiv(&("")) {
+        if self.indent == "" {
             wr.write_str(value).unwrap();
         } else {
             let mut pos = 0;
@@ -162,7 +162,7 @@ impl<'a> RenderContext<'a> {
 
         self.render_utag(&mut mem_wr, stack, path);
 
-        let bytes = mem_wr.unwrap();
+        let bytes = mem_wr.into_inner();
         let s = str::from_utf8(bytes.as_slice()).unwrap().to_string();
 
         for c in s.as_slice().chars() {
@@ -355,7 +355,7 @@ impl<'a> RenderContext<'a> {
 mod tests {
     use std::cell::RefCell;
     use std::str;
-    use std::io::{File, MemWriter, TempDir};
+    use std::io::{File, TempDir};
     use std::collections::HashMap;
     use serialize::json;
     use serialize::Encodable;
@@ -377,10 +377,10 @@ mod tests {
     ) -> Result<String, Error> {
         let template = compile_str(template);
 
-        let mut wr = MemWriter::new();
+        let mut wr = Vec::new();
         try!(template.render(&mut wr, data));
 
-        Ok(str::from_utf8(wr.unwrap().as_slice()).unwrap().to_string())
+        Ok(String::from_utf8(wr).unwrap().to_string())
     }
 
     #[test]
@@ -409,9 +409,9 @@ mod tests {
     }
 
     fn render_data<'a>(template: &Template, data: &Data<'a>) -> String {
-        let mut wr = MemWriter::new();
+        let mut wr = Vec::new();
         template.render_data(&mut wr, data);
-        str::from_utf8(wr.unwrap().as_slice()).unwrap().to_string()
+        String::from_utf8(wr).unwrap().to_string()
     }
 
     #[test]
@@ -526,7 +526,7 @@ mod tests {
             Err(e) => panic!(e.to_string()),
             Ok(json) => {
                 match json {
-                    json::Object(d) => {
+                    json::Json::Object(d) => {
                         let mut d = d;
                         match d.remove("tests") {
                             Some(json::Json::Array(tests)) => tests.into_iter().collect(),
@@ -541,10 +541,10 @@ mod tests {
 
     fn write_partials(tmpdir: &Path, value: &json::Json) {
         match value {
-            &json::Object(ref d) => {
+            &json::Json::Object(ref d) => {
                 for (key, value) in d.iter() {
                     match value {
-                        &json::String(ref s) => {
+                        &json::Json::String(ref s) => {
                             let mut path = tmpdir.clone();
                             path.push(*key + ".mustache");
                             File::create(&path).write(s.as_bytes()).unwrap();
@@ -557,14 +557,14 @@ mod tests {
         }
     }
 
-    fn run_test(test: json::JsonObject, data: Data) {
+    fn run_test(test: json::Object, data: Data) {
         let template = match test.get("template") {
-            Some(&json::String(ref s)) => s.clone(),
+            Some(&json::Json::String(ref s)) => s.clone(),
             _ => panic!(),
         };
 
         let expected = match test.get("expected") {
-            Some(&json::String(ref s)) => s.clone(),
+            Some(&json::Json::String(ref s)) => s.clone(),
             _ => panic!(),
         };
 
@@ -599,7 +599,7 @@ mod tests {
     fn run_tests(spec: &str) {
         for json in parse_spec_tests(spec).into_iter() {
             let test = match json {
-                json::Object(m) => m,
+                json::Json::Object(m) => m,
                 _ => panic!(),
             };
 
@@ -650,12 +650,12 @@ mod tests {
     fn test_spec_lambdas() {
         for json in parse_spec_tests("spec/specs/~lambdas.json").into_iter() {
             let mut test = match json {
-                json::Object(m) => m,
+                json::Json::Object(m) => m,
                 value => { panic!("{}", value) }
             };
 
             let s = match test.remove("name") {
-                Some(json::String(s)) => s,
+                Some(json::Json::String(s)) => s,
                 value => { panic!("{}", value) }
             };
 

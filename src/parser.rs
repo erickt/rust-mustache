@@ -294,7 +294,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
     fn add_tag(&mut self) {
         self.bump();
 
-        let tag = self.otag + self.content.as_slice() + self.ctag;
+        let tag = self.otag.clone() + &*self.content + &*self.ctag;
 
         // Move the content to avoid a copy.
         let mut content = String::new();

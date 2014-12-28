@@ -50,8 +50,8 @@ impl Context {
 
         // TODO: maybe allow UTF-16 as well?
         let template = match str::from_utf8(s.as_slice()) {
-            Some(string) => string,
-            None => { return Err(Error::InvalidStr); }
+            Ok(string) => string,
+            Err(_) => { return Err(Error::InvalidStr); }
         };
 
         Ok(self.compile(template.chars()))

@@ -194,7 +194,7 @@ impl<'a> serialize::Encoder<Error> for Encoder<'a> {
 
 pub fn encode<'a, T: serialize::Encodable<Encoder<'a>, Error>>(data: &T) -> Result<Data<'a>, Error> {
     let mut encoder = Encoder::new();
-    try!(data.encode(&mut encoder))
+    try!(data.encode(&mut encoder));
     assert_eq!(encoder.data.len(), 1);
     match encoder.data.pop() {
         Some(data) => Ok(data),

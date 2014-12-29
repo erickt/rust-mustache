@@ -278,7 +278,7 @@ impl<'a> VecBuilder<'a> {
     /// let data = VecBuilder::new()
     ///     .push_fn(|s| {
     ///         count += 1u;
-    ///         s + count.to_string()
+    ///         s + &*count.to_string()
     ///     })
     ///     .build();
     /// ```
@@ -356,7 +356,7 @@ mod tests {
         let data = MapBuilder::new()
             .insert_fn("count", |s| {
                 count += 1u;
-                s + count.to_string()
+                s + &*count.to_string()
             })
             .build();
 
@@ -385,7 +385,7 @@ mod tests {
         let data = VecBuilder::new()
             .push_fn(|s| {
                 count += 1u;
-                s + count.to_string()
+                s + &*count.to_string()
             })
             .build();
 

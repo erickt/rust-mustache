@@ -518,8 +518,8 @@ mod tests {
         };
 
         let s = match str::from_utf8(file_contents.as_slice()){
-            Some(str) => str.to_string(),
-            None => {panic!("File was not UTF8 encoded");}
+            Ok(str) => str.to_string(),
+            Err(_) => {panic!("File was not UTF8 encoded");}
         };
 
         match json::from_str(s.as_slice()) {
@@ -546,7 +546,7 @@ mod tests {
                     match value {
                         &json::Json::String(ref s) => {
                             let mut path = tmpdir.clone();
-                            path.push(*key + ".mustache");
+                            path.push(format!("{}{}", key, ".mustache"));
                             File::create(&path).write(s.as_bytes()).unwrap();
                         }
                         _ => panic!(),
@@ -705,13 +705,13 @@ mod tests {
                     }
                 }
                 "Section - Expansion" => {
-                    |text: String| { text + "{{planet}}" + text }
+                    |text: String| { format!("{}{}{}", text, "{{planet}}", text) }
                 }
                 "Section - Alternate Delimiters" => {
-                    |text: String| { text + "{{planet}} => |planet|" + text }
+                    |text: String| { format!("{}{}{}", text, "{{planet}} => |planet|", text) }
                 }
                 "Section - Multiple Calls" => {
-                    |text: String| { "__".to_string() + text + "__" }
+                    |text: String| { format!("{}{}{}", "__", text, "__") }
                 }
                 "Inverted Section" => {
                     |_text| { "".to_string() }

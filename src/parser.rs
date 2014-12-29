@@ -1,4 +1,5 @@
 use std::mem;
+use std::borrow::ToOwned;
 
 use self::Token::{Text, ETag, UTag, Section, IncompleteSection, Partial};
 use self::TokenClass::{Normal, StandAlone, WhiteSpace};
@@ -213,7 +214,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
             let mut content = String::new();
             mem::swap(&mut content, &mut self.content);
 
-            self.tokens.push(Text(content.into_string()));
+            self.tokens.push(Text(content.to_owned()));
         }
     }
 
@@ -397,7 +398,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
                                         children,
                                         self.otag.to_string(),
                                         osection,
-                                        src.into_string(),
+                                        src.to_owned(),
                                         tag,
                                         self.ctag.to_string()));
                                 break;

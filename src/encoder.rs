@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use serialize;
+use rustc_serialize;
 
 use data::Data;
 use error::Error;
@@ -16,7 +16,7 @@ impl<'a> Encoder<'a> {
 
 pub type EncoderResult = Result<(), Error>;
 
-impl<'a> serialize::Encoder<Error> for Encoder<'a> {
+impl<'a> rustc_serialize::Encoder<Error> for Encoder<'a> {
     fn emit_nil(&mut self) -> EncoderResult { Err(Error::UnsupportedType) }
 
     fn emit_uint(&mut self, v: uint) -> EncoderResult { self.emit_str(v.to_string().as_slice()) }
@@ -186,7 +186,7 @@ impl<'a> serialize::Encoder<Error> for Encoder<'a> {
     }
 }
 
-pub fn encode<'a, T: serialize::Encodable<Encoder<'a>, Error>>(data: &T) -> Result<Data<'a>, Error> {
+pub fn encode<'a, T: rustc_serialize::Encodable<Encoder<'a>, Error>>(data: &T) -> Result<Data<'a>, Error> {
     let mut encoder = Encoder::new();
     try!(data.encode(&mut encoder));
     assert_eq!(encoder.data.len(), 1);

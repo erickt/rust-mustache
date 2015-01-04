@@ -5,7 +5,7 @@
 
 #![feature(phase)]
 
-extern crate serialize;
+extern crate "rustc-serialize" as rustc_serialize;
 
 #[phase(plugin, link)]
 extern crate log;

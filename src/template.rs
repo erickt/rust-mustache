@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::io::MemWriter;
 use std::mem;
 use std::str;
-use serialize::Encodable;
+use rustc_serialize::Encodable;
 
 use compiler::Compiler;
 use data::Data;

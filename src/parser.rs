@@ -6,7 +6,7 @@ use self::TokenClass::{Normal, StandAlone, WhiteSpace};
 use self::ParserState::{TEXT, OTAG, TAG, CTAG};
 
 /// `Token` is a section of a compiled mustache string.
-#[deriving(Clone, Show)]
+#[derive(Clone, Show)]
 pub enum Token {
     Text(String),
     ETag(Vec<String>, String),

@@ -37,7 +37,7 @@ impl<'a> serialize::Encoder<Error> for Encoder<'a> {
     fn emit_f32(&mut self, v: f32) -> EncoderResult { self.emit_str(v.to_string().as_slice()) }
 
     fn emit_char(&mut self, v: char) -> EncoderResult {
-        self.data.push(Data::Str(String::from_char(1, v)));
+        self.data.push(Data::Str(v.to_string()));
         Ok(())
     }
     fn emit_str(&mut self, v: &str) -> EncoderResult { self.data.push(Data::Str(v.to_string())); Ok(()) }

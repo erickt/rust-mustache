@@ -4,11 +4,11 @@ use std::str;
 
 use compiler::Compiler;
 use error::Error;
-use template::{mod, Template};
+use template::{self, Template};
 
 /// Represents the shared metadata needed to compile and render a mustache
 /// template.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Context {
     pub template_path: Path,
     pub template_extension: String,

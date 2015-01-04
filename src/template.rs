@@ -15,7 +15,7 @@ use parser;
 use context::Context;
 
 /// `Template` represents a compiled mustache file.
-#[deriving(Show, Clone)]
+#[derive(Show, Clone)]
 pub struct Template {
     ctx: Context,
     tokens: Vec<Token>,

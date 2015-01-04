@@ -357,8 +357,8 @@ mod tests {
     use std::str;
     use std::io::{File, TempDir};
     use std::collections::HashMap;
-    use serialize::json;
-    use serialize::Encodable;
+    use rustc_serialize::json;
+    use rustc_serialize::Encodable;
 
     use context::Context;
     use data::Data;
@@ -368,7 +368,7 @@ mod tests {
 
     use super::super::compile_str;
 
-    #[deriving(Encodable)]
+    #[derive(RustcEncodable)]
     struct Name { name: String }
 
     fn render<'a, 'b, T: Encodable<Encoder<'b>, Error>>(
@@ -522,7 +522,7 @@ mod tests {
             Err(_) => {panic!("File was not UTF8 encoded");}
         };
 
-        match json::from_str(s.as_slice()) {
+        match json::Json::from_str(s.as_slice()) {
             Err(e) => panic!(e.to_string()),
             Ok(json) => {
                 match json {

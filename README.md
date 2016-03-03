@@ -1,3 +1,7 @@
+# WARNING: This repository is not being actively development. Instead, I'd recommend you check out one of the more actively developed forks, like [nickel-org/rust-mustache](https://github.com/nickel-org/rust-mustache).
+
+---
+
 Mustache [![Ohloh statistics](http://www.ohloh.net/p/rust-mustache/widgets/project_thin_badge.gif)](https://www.ohloh.net/p/rust-mustache)
 ========
 

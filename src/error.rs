@@ -2,7 +2,7 @@ use std::io;
 use std::error;
 use std::fmt;
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum Error {
     UnsupportedType,
     InvalidStr,

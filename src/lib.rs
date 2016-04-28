@@ -4,8 +4,9 @@
 #![crate_type = "rlib"]
 
 #![feature(phase)]
+#![feature(old_orphan_check)]
 
-extern crate serialize;
+extern crate "rustc-serialize" as rustc_serialize;
 
 #[phase(plugin, link)]
 extern crate log;

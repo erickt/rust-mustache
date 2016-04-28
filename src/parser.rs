@@ -1,11 +1,12 @@
 use std::mem;
+use std::borrow::ToOwned;
 
 use self::Token::{Text, ETag, UTag, Section, IncompleteSection, Partial};
 use self::TokenClass::{Normal, StandAlone, WhiteSpace};
 use self::ParserState::{TEXT, OTAG, TAG, CTAG};
 
 /// `Token` is a section of a compiled mustache string.
-#[deriving(Clone, Show)]
+#[derive(Clone, Show)]
 pub enum Token {
     Text(String),
     ETag(Vec<String>, String),
@@ -213,7 +214,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
             let mut content = String::new();
             mem::swap(&mut content, &mut self.content);
 
-            self.tokens.push(Text(content.into_string()));
+            self.tokens.push(Text(content.to_owned()));
         }
     }
 
@@ -243,7 +244,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
             Some(&Text(ref s)) if !s.is_empty() => {
                 // Look for the last newline character that may have whitespace
                 // following it.
-                match s.as_slice().rfind(|c:char| c == '\n' || !c.is_whitespace()) {
+                match s.as_slice().rfind(|&:c:char| c == '\n' || !c.is_whitespace()) {
                     // It's all whitespace.
                     None => {
                         if self.tokens.len() == 1 {
@@ -294,7 +295,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
     fn add_tag(&mut self) {
         self.bump();
 
-        let tag = self.otag + self.content.as_slice() + self.ctag;
+        let tag = self.otag.clone() + &*self.content + &*self.ctag;
 
         // Move the content to avoid a copy.
         let mut content = String::new();
@@ -397,7 +398,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
                                         children,
                                         self.otag.to_string(),
                                         osection,
-                                        src.into_string(),
+                                        src.to_owned(),
                                         tag,
                                         self.ctag.to_string()));
                                 break;
@@ -430,7 +431,7 @@ impl<'a, T: Iterator<char>> Parser<'a, T> {
                     self.otag_chars = self.otag.as_slice().chars().collect();
 
                     let s2 = s.as_slice().slice_from(pos);
-                    let pos = s2.find(|c: char| !c.is_whitespace());
+                    let pos = s2.find(|&:c: char| !c.is_whitespace());
                     let pos = match pos {
                       None => { panic!("invalid change delimiter tag content"); }
                       Some(pos) => { pos }

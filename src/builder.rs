@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use serialize::Encodable;
+use rustc_serialize::Encodable;
 
 use encoder;
 use encoder::Encoder;
@@ -10,6 +10,24 @@ use data::Data;
 /// `MapBuilder` is a helper type that construct `Data` types.
 pub struct MapBuilder<'a> {
     data: HashMap<String, Data<'a>>,
+}
+
+/// Trait was removed from stdlib, just duplicate what we need hear until rust's
+/// string corersions story is resolved.
+pub trait StrAllocating {
+    fn into_string(self) -> String;
+}
+
+impl StrAllocating for String {
+    fn into_string(self) -> String {
+        self
+    }
+}
+
+impl<'a> StrAllocating for &'a str {
+    fn into_string(self) -> String {
+        self.to_string()
+    }
 }
 
 impl<'a> MapBuilder<'a> {
@@ -260,7 +278,7 @@ impl<'a> VecBuilder<'a> {
     /// let data = VecBuilder::new()
     ///     .push_fn(|s| {
     ///         count += 1u;
-    ///         s + count.to_string()
+    ///         s + &*count.to_string()
     ///     })
     ///     .build();
     /// ```
@@ -338,7 +356,7 @@ mod tests {
         let data = MapBuilder::new()
             .insert_fn("count", |s| {
                 count += 1u;
-                s + count.to_string()
+                s + &*count.to_string()
             })
             .build();
 
@@ -367,7 +385,7 @@ mod tests {
         let data = VecBuilder::new()
             .push_fn(|s| {
                 count += 1u;
-                s + count.to_string()
+                s + &*count.to_string()
             })
             .build();
 

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::io::MemWriter;
 use std::mem;
 use std::str;
-use serialize::Encodable;
+use rustc_serialize::Encodable;
 
 use compiler::Compiler;
 use data::Data;
@@ -15,7 +15,7 @@ use parser;
 use context::Context;
 
 /// `Template` represents a compiled mustache file.
-#[deriving(Show, Clone)]
+#[derive(Show, Clone)]
 pub struct Template {
     ctx: Context,
     tokens: Vec<Token>,
@@ -272,7 +272,7 @@ impl<'a> RenderContext<'a> {
         match self.template.partials.get(name) {
             None => { }
             Some(ref tokens) => {
-                let mut indent = self.indent + indent;
+                let mut indent = self.indent.clone() + indent;
 
                 mem::swap(&mut self.indent, &mut indent);
                 self.render(wr, stack, tokens.as_slice());
@@ -357,8 +357,8 @@ mod tests {
     use std::str;
     use std::io::{File, TempDir};
     use std::collections::HashMap;
-    use serialize::json;
-    use serialize::Encodable;
+    use rustc_serialize::json;
+    use rustc_serialize::Encodable;
 
     use context::Context;
     use data::Data;
@@ -368,7 +368,7 @@ mod tests {
 
     use super::super::compile_str;
 
-    #[deriving(Encodable)]
+    #[derive(RustcEncodable)]
     struct Name { name: String }
 
     fn render<'a, 'b, T: Encodable<Encoder<'b>, Error>>(
@@ -518,11 +518,11 @@ mod tests {
         };
 
         let s = match str::from_utf8(file_contents.as_slice()){
-            Some(str) => str.to_string(),
-            None => {panic!("File was not UTF8 encoded");}
+            Ok(str) => str.to_string(),
+            Err(_) => {panic!("File was not UTF8 encoded");}
         };
 
-        match json::from_str(s.as_slice()) {
+        match json::Json::from_str(s.as_slice()) {
             Err(e) => panic!(e.to_string()),
             Ok(json) => {
                 match json {
@@ -546,7 +546,7 @@ mod tests {
                     match value {
                         &json::Json::String(ref s) => {
                             let mut path = tmpdir.clone();
-                            path.push(*key + ".mustache");
+                            path.push(format!("{}{}", key, ".mustache"));
                             File::create(&path).write(s.as_bytes()).unwrap();
                         }
                         _ => panic!(),
@@ -705,13 +705,13 @@ mod tests {
                     }
                 }
                 "Section - Expansion" => {
-                    |text: String| { text + "{{planet}}" + text }
+                    |text: String| { format!("{}{}{}", text, "{{planet}}", text) }
                 }
                 "Section - Alternate Delimiters" => {
-                    |text: String| { text + "{{planet}} => |planet|" + text }
+                    |text: String| { format!("{}{}{}", text, "{{planet}} => |planet|", text) }
                 }
                 "Section - Multiple Calls" => {
-                    |text: String| { "__".to_string() + text + "__" }
+                    |text: String| { format!("{}{}{}", "__", text, "__") }
                 }
                 "Inverted Section" => {
                     |_text| { "".to_string() }

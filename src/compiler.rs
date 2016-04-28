@@ -52,7 +52,7 @@ impl<T: Iterator<char>> Compiler<T> {
 
         // Compile the partials if we haven't done so already.
         for name in partials.into_iter() {
-            let path = self.ctx.template_path.join(name + "." + self.ctx.template_extension);
+            let path = self.ctx.template_path.join(name.clone() + "." + &*self.ctx.template_extension);
 
             if !self.partials.contains_key(&name) {
                 // Insert a placeholder so we don't recurse off to infinity.
@@ -61,8 +61,8 @@ impl<T: Iterator<char>> Compiler<T> {
                 match File::open(&path).read_to_end() {
                     Ok(contents) => {
                         let string = match str::from_utf8(contents.as_slice()) {
-                            Some(string) => string.to_string(),
-                            None => { panic!("Failed to parse file as UTF-8"); }
+                            Ok(string) => string.to_string(),
+                            Err(_) => { panic!("Failed to parse file as UTF-8"); }
                         };
 
                         let compiler = Compiler {
